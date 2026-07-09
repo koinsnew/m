@@ -1,15 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>스마트 지출</title>
+  <!-- 접속 즉시 앱 배포 URL로 이동 (iframe 임베드가 구글 정책에 막혀 리다이렉트 방식으로 변경) -->
+  <meta http-equiv="refresh" content="0; url=https://script.google.com/macros/s/AKfycbwtGztWg3l_ZCePZx8ZMecep2LnDYz_HSITU1k21sVBg83enu8xLiRjiJ2WGsDdWAn4/exec">
+  <link rel="icon" href="data:,">
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-    iframe { width: 100%; height: 100%; border: none; }
+    :root { color-scheme: light; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background:
+        radial-gradient(900px 500px at 50% 20%, rgba(99,102,241,.10), transparent 60%),
+        radial-gradient(700px 500px at 50% 120%, rgba(20,184,166,.08), transparent 55%),
+        #fbfcff;
+    }
+    .brand {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      color: #0f172a;
+    }
+    .brand span { color: #4f46e5; }
+    .spinner {
+      width: 46px; height: 46px;
+      border: 4px solid rgba(79,70,229,.15);
+      border-top-color: #4f46e5;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .msg { font-size: .9rem; color: #64748b; }
+    .fallback {
+      margin-top: 8px;
+      font-size: .85rem;
+    }
+    .fallback a {
+      color: #4f46e5;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .fallback a:hover { text-decoration: underline; }
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation: none; }
+    }
   </style>
 </head>
 <body>
-  <iframe src="https://script.google.com/macros/s/AKfycbwtGztWg3l_ZCePZx8ZMecep2LnDYz_HSITU1k21sVBg83enu8xLiRjiJ2WGsDdWAn4/exec"></iframe>
+  <div class="brand">잠시만 기다려주세요.</div>
+  <div class="spinner"></div>
+  <p class="fallback">
+    자동으로 넘어가지 않으면
+    <a href="https://script.google.com/macros/s/AKfycbwtGztWg3l_ZCePZx8ZMecep2LnDYz_HSITU1k21sVBg83enu8xLiRjiJ2WGsDdWAn4/exec">여기를 눌러</a>
+    이동하세요.
+  </p>
+  <script>
+    // 일부 브라우저에서 meta refresh가 늦을 경우 대비해 즉시 이동
+    location.replace("https://script.google.com/macros/s/AKfycbwtGztWg3l_ZCePZx8ZMecep2LnDYz_HSITU1k21sVBg83enu8xLiRjiJ2WGsDdWAn4/exec");
+  </script>
+</body>
+</html>
 </body>
 </html>
