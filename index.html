@@ -1222,6 +1222,12 @@
         const loanSumEl = document.getElementById(`loanSum_${i}`);
         if (loanSumEl) loanSumEl.innerText = fmt(l.payment);
         tLoan += l.payment;
+
+        // 대출도 전체 지출 상세/합계에 포함
+        if (l.payment > 0) {
+          const lname = (l.name && l.name.trim()) ? (l.name.trim() + ' 대출') : ('대출 ' + (i + 1));
+          spendAgg[lname] = (spendAgg[lname] || 0) + l.payment;
+        }
         let balance = P;
         if (l.startDate && P > 0 && l.method !== 'interest_only') {
           const start = new Date(l.startDate); const now = new Date();
@@ -1277,14 +1283,19 @@
       const barTotal = cashData.reduce((a, b) => a + (b.y || 0), 0);
 
       Highcharts.chart('bar-container', {
-        chart: { type: 'bar', height: barH, backgroundColor: 'transparent', marginRight: 70 },
+        chart: { type: 'bar', height: barH, backgroundColor: 'transparent', marginRight: 104 },
         exporting: { enabled: false },
         title: { text: '전체 지출 상세  ·  합계 ' + Math.round(barTotal).toLocaleString() + '원', style: { fontSize: '14px', color: '#111827', fontWeight: 'bold' } },
-        xAxis: { type: 'category', labels: { style: { fontSize: '12px', fontWeight: '700', color: '#374151' } } },
+        xAxis: { type: 'category', labels: { style: { fontSize: '10.5px', fontWeight: '700', color: '#374151', whiteSpace: 'nowrap', textOverflow: 'none' } } },
         yAxis: { title: { text: null }, labels: { enabled: false }, gridLineWidth: 0 },
         legend: { enabled: false },
         tooltip: { followTouchMove: false, pointFormat: '<b>{point.y:,.0f}원</b>' },
-        plotOptions: { bar: { colorByPoint: true, borderRadius: 5, pointPadding: 0.08, groupPadding: 0.06, dataLabels: { enabled: true, crop: false, overflow: 'allow', align: 'left', inside: false, format: '{point.y:,.0f}원', style: { fontSize: '12px', fontWeight: '700', color: '#111827', textOutline: 'none' } } } },
+        plotOptions: { bar: { colorByPoint: true, borderRadius: 5, pointPadding: 0.08, groupPadding: 0.06, dataLabels: { enabled: true, crop: false, overflow: 'allow', allowOverlap: true, align: 'left', inside: false, padding: 3,
+          formatter: function () {
+            const pct = barTotal > 0 ? (this.y / barTotal * 100) : 0;
+            return Highcharts.numberFormat(this.y, 0) + '원 (' + pct.toFixed(1) + '%)';
+          },
+          style: { fontSize: '10px', fontWeight: '700', color: '#111827', textOutline: 'none', whiteSpace: 'nowrap' } } } },
         colors: ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444', '#14B8A6', '#F97316', '#64748B', '#A855F7', '#D946EF'],
         series: [{ name: '지출', data: cashData.length ? cashData : [{ name: '없음', y: 0 }] }]
       });
