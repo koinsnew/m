@@ -1,72 +1,1183 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>스마트 지출</title>
-  <!-- 접속 즉시 앱 배포 URL로 이동 (iframe 임베드가 구글 정책에 막혀 리다이렉트 방식으로 변경) -->
-  <meta http-equiv="refresh" content="0; url=https://script.google.com/macros/s/AKfycbwtGztWg3l_ZCePZx8ZMecep2LnDYz_HSITU1k21sVBg83enu8xLiRjiJ2WGsDdWAn4/exec">
-  <link rel="icon" href="data:,">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/highcharts-3d.js"></script>
+  <script src="https://code.highcharts.com/modules/exporting.js"></script>
+  <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
   <style>
-    :root { color-scheme: light; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #6366f1;
+      --bg-color: #F3F4F6;
+      --text-dark: #111827;
+      --text-gray: #6B7280;
+
+      /* Gradients */
+      --grad-cred: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+      --grad-loan: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+      --grad-cash: linear-gradient(135deg, #10b981 0%, #047857 100%);
+
+      /* 스마트 지출 Premium Colors */
+      --ht-navy: #0B192C;
+      --ht-gold: #D4AF37;
+      --ht-dark: #050A14;
+    }
+
+    * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+
     body {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 22px;
-      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background:
-        radial-gradient(900px 500px at 50% 20%, rgba(99,102,241,.10), transparent 60%),
-        radial-gradient(700px 500px at 50% 120%, rgba(20,184,166,.08), transparent 55%),
-        #fbfcff;
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-dark);
+      margin: 0; padding: 0;
+      overflow-x: hidden;
     }
-    .brand {
-      font-size: 1.4rem;
-      font-weight: 800;
-      letter-spacing: .12em;
-      color: #0f172a;
+
+    /* --- 로그인 화면 스타일 (헤리티지 프로 스타일) --- */
+    #login-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(135deg, var(--ht-navy) 0%, var(--ht-dark) 100%);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      padding: 20px; transition: opacity 0.5s ease;
     }
-    .brand span { color: #4f46e5; }
-    .spinner {
-      width: 46px; height: 46px;
-      border: 4px solid rgba(79,70,229,.15);
-      border-top-color: #4f46e5;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+    .login-box {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px; padding: 40px 30px; width: 100%; max-width: 400px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      text-align: center;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .msg { font-size: .9rem; color: #64748b; }
-    .fallback {
-      margin-top: 8px;
-      font-size: .85rem;
+    .login-logo { margin-bottom: 30px; }
+    .login-logo i { font-size: 36px; color: var(--ht-gold); margin-bottom: 12px; }
+    .login-logo h1 { font-size: 24px; font-weight: 900; color: #fff; margin: 0; letter-spacing: 2px; }
+    .login-logo p { color: rgba(255,255,255,0.6); font-size: 13px; margin: 5px 0 0 0; letter-spacing: 1px; }
+
+    .login-input-wrap { margin-bottom: 16px; position: relative; }
+    .login-input-wrap i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.4); }
+    .login-input {
+      width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 14px 16px 14px 45px; color: #fff; font-size: 15px; transition: 0.3s;
     }
-    .fallback a {
-      color: #4f46e5;
-      font-weight: 700;
-      text-decoration: none;
+    .login-input:focus { border-color: var(--ht-gold); outline: none; background: rgba(0,0,0,0.5); }
+    .login-input::placeholder { color: rgba(255,255,255,0.3); }
+
+    .btn-login {
+      width: 100%; background: linear-gradient(135deg, #F3D060 0%, var(--ht-gold) 100%);
+      color: var(--ht-navy); font-weight: 800; font-size: 16px; padding: 14px; border: none;
+      border-radius: 12px; cursor: pointer; transition: 0.3s; margin-top: 10px;
     }
-    .fallback a:hover { text-decoration: underline; }
-    @media (prefers-reduced-motion: reduce) {
-      .spinner { animation: none; }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login:disabled { opacity: 0.7; cursor: not-allowed; }
+
+    /* 메인 앱 컨테이너 */
+    #app-container { display: none; padding-bottom: 60px; }
+
+    /* --- Header --- */
+    .header-bar {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      position: sticky; top: 0; z-index: 100;
+      padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      flex-wrap: nowrap; gap: 10px; overflow-x: auto; scrollbar-width: none;
     }
+    .header-bar::-webkit-scrollbar { display: none; }
+
+    .app-brand {
+      font-size: 18px; font-weight: 900; color: var(--ht-navy);
+      display: flex; align-items: center; gap: 6px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .app-brand i { color: var(--ht-gold); }
+
+    .btn-group { display: flex; gap: 6px; flex-shrink: 0; }
+    .btn-common {
+      border: none; padding: 8px 12px; border-radius: 20px;
+      font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.1s; color: white;
+      white-space: nowrap;
+    }
+    .btn-common:active { transform: scale(0.95); }
+    .btn-common:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-edit { background: var(--ht-navy); } .btn-edit.active { background: #EC4899; }
+    .btn-capture { background: #64748B; }
+    .btn-save { background: var(--ht-gold); color: var(--ht-navy); }
+    .btn-logout { background: #EF4444; color: white; }
+
+    /* --- Dashboard (Charts) --- */
+    #captureArea { padding: 24px 20px 10px 20px; }
+
+    .total-card {
+      background: white; border-radius: 24px; padding: 30px 20px; text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); margin-bottom: 30px; position: relative; overflow: hidden;
+    }
+    .total-card::before { content:''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(11,25,44,0.03) 0%, rgba(255,255,255,0) 70%); pointer-events: none; }
+
+    .total-label { font-size: 14px; color: var(--text-gray); font-weight: 500; margin-bottom: 8px; position: relative; }
+    .total-amount { font-size: 40px; font-weight: 900; color: var(--ht-navy); letter-spacing: -1px; margin-bottom: 10px; position: relative; font-family: 'Roboto Mono', monospace; }
+
+    .net-spend-row { margin-bottom: 24px; position: relative; z-index: 1; display:flex; justify-content:center; align-items:center; gap:6px;}
+    .net-label { font-size: 14px; color: #6B7280; font-weight: 600; }
+    .net-amount { font-size: 22px; font-weight: 800; color: #059669; font-family: 'Roboto Mono', monospace; }
+
+    .charts-row { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; position: relative; z-index: 1; }
+    .chart-box { flex: 1 1 300px; height: 300px; min-width: 0; }
+
+    /* --- Section & Scroller --- */
+    .section-container { margin-bottom: 32px; }
+    .section-header { padding: 0 20px; margin-bottom: 16px; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--text-dark); }
+    .section-header .sh-title { display: flex; align-items: center; gap: 8px; }
+    .btn-add-card {
+      margin-left: auto; background: var(--ht-navy); color: #fff; border: none;
+      border-radius: 20px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 10px rgba(11,25,44,0.2); flex-shrink: 0;
+    }
+    .btn-add-card:active { transform: scale(0.96); }
+
+    /* 스와이프(한 화면 한 개) */
+    .swipe-wrap { position: relative; }
+    .scroller {
+      display: flex; overflow-x: auto; padding: 0;
+      scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .scroller::-webkit-scrollbar { display: none; }
+    .slide {
+      flex: 0 0 100%; width: 100%; scroll-snap-align: center;
+      display: flex; justify-content: center; padding: 4px 16px 20px 16px;
+    }
+
+    .swipe-arrow {
+      position: absolute; top: 42%; transform: translateY(-50%); z-index: 6;
+      width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer;
+      background: rgba(255,255,255,0.95); box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+      color: var(--ht-navy); font-size: 20px; display: flex; align-items: center; justify-content: center;
+    }
+    .swipe-arrow:active { transform: translateY(-50%) scale(0.92); }
+    .swipe-arrow.left { left: 4px; } .swipe-arrow.right { right: 4px; }
+
+    .swipe-foot { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: -4px; }
+    .swipe-dots { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; max-width: 260px; }
+    .swipe-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #CBD5E1; cursor: pointer; transition: all 0.2s; }
+    .swipe-dots .dot.active { background: var(--ht-navy); width: 24px; border-radius: 4px; }
+    .swipe-counter { font-size: 13px; color: var(--text-gray); font-weight: 800; letter-spacing: 0.5px; }
+
+    /* --- Card Design --- */
+    .card {
+      width: 100%; max-width: 440px;
+      background: white; border-radius: 20px; border: 1px solid rgba(0,0,0,0.03);
+      box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.12); display: flex; flex-direction: column;
+    }
+
+    .card-header {
+      padding: 0; border-radius: 20px 20px 0 0; color: white;
+      display: flex; width: 100%; height: 80px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative; overflow: hidden;
+    }
+    .theme-cred .card-header { background: var(--grad-cred); }
+    .theme-loan .card-header { background: var(--grad-loan); }
+    .theme-cash .card-header { background: var(--grad-cash); }
+
+    /* 카드/그룹 삭제 버튼 (수정모드에서만) */
+    .card-del {
+      display: none; position: absolute; top: 8px; right: 8px; z-index: 8;
+      width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer;
+      background: rgba(0,0,0,0.35); color: #fff; font-size: 12px;
+      align-items: center; justify-content: center;
+    }
+    .card.editing .card-del { display: flex; }
+
+    .header-split { flex: 1; display: flex; align-items: stretch; width: 100%; }
+    .split-col { display: flex; flex-direction: column; justify-content: center; padding: 0 16px; position: relative; }
+    .split-col:first-child { border-right: 1px solid rgba(255,255,255,0.2); }
+
+    .col-60 { flex: 0 0 60%; width: 60%; }
+    .col-40 { flex: 0 0 40%; width: 40%; }
+    .col-50 { flex: 0 0 50%; width: 50%; }
+
+    .header-label { font-size: 10px; opacity: 0.8; margin-bottom: 2px; font-weight: 500; }
+    .title-row-wrap { display: flex; align-items: center; width: 100%; gap: 6px; }
+
+    input:read-only, select:disabled { opacity: 0.7; pointer-events: none; }
+    .card.editing input, .card.editing select { opacity: 1; pointer-events: auto; }
+
+    .title-input { background: transparent; border: none; color: white; font-size: 15px; font-weight: 700; flex: 1; padding: 0; min-width: 0; }
+    .title-input::placeholder { color: rgba(255,255,255,0.5); }
+    .title-input.threshold-val { color: #FDBA74; }
+    .title-input.threshold-val::placeholder { color: rgba(253, 186, 116, 0.5); }
+
+    .discount-wrap { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+    .discount-label { font-size: 10px; color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 4px; white-space:nowrap; }
+    .discount-input {
+      width: 70px; background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.5);
+      color: #A7F3D0; font-weight: 700; text-align: right; font-size: 13px; font-family: 'Roboto Mono', monospace;
+    }
+    .discount-input::placeholder { color: rgba(167, 243, 208, 0.5); }
+
+    .select-wrapper { position: relative; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .select-icon { color: rgba(255,255,255,0.8); font-size: 12px; }
+    .title-helper-select { position: absolute; inset: 0; opacity: 0; cursor: pointer; width:100%; height:100%; }
+
+    .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+
+    .input-group {
+      display: flex; align-items: center; gap: 8px; background: #F9FAFB;
+      padding: 4px; border-radius: 10px; border: 1px solid transparent; transition: 0.2s;
+    }
+    .card.editing .input-group:focus-within { background: white; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+    .input-group.excluded .inp-money { text-decoration: line-through; color: #9CA3AF; }
+    .input-group.excluded .inp-text { color: #9CA3AF; }
+
+    .inp-text { flex: 1; border: none; background: transparent; padding: 8px 10px; font-size: 12px; letter-spacing: -0.5px; min-width: 0; }
+    .inp-money { width: 90px; border: none; background: white; padding: 6px 10px; font-size: 14px; font-weight: 700; text-align: right; border-radius: 8px; color: var(--text-dark); box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-family: 'Roboto Mono', monospace; }
+    .inp-money::placeholder { color: #D1D5DB; font-weight: 400; }
+
+    .chk-exclude { appearance: none; width: 18px; height: 18px; border: 2px solid #D1D5DB; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: white; margin-right: 4px; }
+    .chk-exclude:checked { background: #EF4444; border-color: #EF4444; }
+    .chk-exclude:checked::after { content: '\f00c'; font-family: "Font Awesome 6 Free"; font-weight: 900; color: white; font-size: 10px; }
+    .exclude-label { font-size: 10px; color: #EF4444; font-weight: 700; white-space: nowrap; display: none; }
+    .input-group.excluded .exclude-label { display: block; }
+
+    /* 항목 삭제 (수정모드에서만) */
+    .item-del {
+      display: none; width: 24px; height: 24px; border-radius: 50%; border: none; cursor: pointer;
+      background: #FEE2E2; color: #EF4444; font-size: 11px; flex-shrink: 0;
+      align-items: center; justify-content: center;
+    }
+    .card.editing .item-del { display: flex; }
+
+    /* 항목 추가 버튼 */
+    .btn-add-item {
+      width: 100%; border: 1.5px dashed #CBD5E1; background: #F8FAFC; color: #475569;
+      border-radius: 10px; padding: 11px; font-weight: 700; font-size: 13px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 2px;
+      font-family: inherit; transition: 0.15s;
+    }
+    .btn-add-item:hover { background: #EEF2FF; border-color: var(--primary); color: var(--primary); }
+    .btn-add-item:active { transform: scale(0.98); }
+
+    .progress-track { width: 100%; height: 8px; background: #E5E7EB; border-radius: 4px; overflow: hidden; margin-top: 12px; position: relative; }
+    .progress-fill { height: 100%; background: var(--primary); width: 0%; border-radius: 4px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .progress-text { font-size: 10px; color: #6B7280; font-weight: 600; margin-top: 4px; display: flex; justify-content: space-between; }
+    .progress-fill.success { background: #10B981; }
+
+    .loan-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .loan-field { display: flex; flex-direction: column; }
+    .loan-field.wide { flex: 2; } .loan-field.narrow { flex: 1; } .loan-field.half { flex: 1; }
+    .loan-label { font-size: 11px; color: var(--text-gray); margin-bottom: 4px; font-weight: 600; display:flex; justify-content: space-between;}
+    .inp-loan { width: 100%; border: 1px solid #E5E7EB; border-radius: 8px; padding: 8px; font-size: 13px; background: #F9FAFB; }
+    .inp-date { width: 100%; border: 1px solid #E5E7EB; border-radius: 8px; padding: 6px; font-size: 12px; background: #F9FAFB; font-family: inherit;}
+
+    .cash-item { border-bottom: 1px dashed #E5E7EB; padding-bottom: 12px; margin-bottom: 12px; }
+    .cash-item:last-child { border: none; margin: 0; padding: 0; }
+    .cash-top-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .cash-date-wrap { display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--text-gray); font-weight: 600; width: 42px; flex-shrink: 0; }
+    .cash-date-inp { width: 20px; text-align: right; border: none; border-bottom: 1px solid #ccc; background: transparent; font-weight: 700; color: var(--primary); padding:0; }
+    .cash-date-label { margin-left: 2px; font-size: 12px; color: var(--text-gray); }
+    .cash-bank-inp { flex: 1; border: 1px solid #E5E7EB; border-radius: 6px; padding: 6px; font-size: 13px; background: #fff; min-width: 0; }
+    .cash-money-inp { width: 100px; border: 1px solid #E5E7EB; border-radius: 6px; padding: 6px; font-size: 13px; text-align: right; font-weight: 700; font-family: 'Roboto Mono', monospace; flex-shrink: 0; }
+    .cash-money-inp::placeholder { color: #D1D5DB; font-weight: 400; }
+    .cash-bot-row { width: 100%; display: flex; align-items: center; gap: 8px; }
+    .cash-desc-inp { flex: 1; border: 1px solid #E5E7EB; border-radius: 6px; padding: 8px; font-size: 13px; background: #F9FAFB; min-width: 0; }
+
+    .card-footer { padding: 16px 20px; background: #fafafa; border-top: 1px solid #f0f0f0; border-radius: 0 0 20px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .badge-pass { display: none; background: #10B981; color: white; font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 20px; margin-left: auto; margin-right: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3); }
+    .badge-pass.active { display: inline-block; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .footer-val { font-size: 16px; font-weight: 800; }
+    .c-cred { color: #4f46e5; } .c-loan { color: #d97706; } .c-cash { color: #059669; }
+    .balance-val { color: var(--primary); font-weight: 700; }
+
+    #toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #10B981; color: #fff; text-align: center; border-radius: 50px; padding: 14px 20px; position: fixed; z-index: 99999; left: 50%; bottom: 30px; font-size: 15px; font-weight: 700; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4); opacity: 0; transform: translateY(20px); transition: all 0.4s; }
+    #toast.show { visibility: visible; opacity: 1; bottom: 50px; transform: translateY(0); }
+    #toast.error { background-color: #EF4444; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4); }
+
+    #loading { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+    .loader { width: 48px; height: 48px; border: 5px solid #E5E7EB; border-bottom-color: var(--ht-navy); border-radius: 50%; animation: rotation 1s linear infinite; }
+    @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <div class="brand">잠시만 기다려주세요.</div>
-  <div class="spinner"></div>
-  <p class="fallback">
-    자동으로 넘어가지 않으면
-    <a href="https://script.google.com/macros/s/AKfycbwtGztWg3l_ZCePZx8ZMecep2LnDYz_HSITU1k21sVBg83enu8xLiRjiJ2WGsDdWAn4/exec">여기를 눌러</a>
-    이동하세요.
-  </p>
+
+  <div id="login-screen">
+    <div class="login-box">
+      <div class="login-logo">
+        <i class="fas fa-gem"></i>
+        <h1>스마트 지출</h1>
+        <p>개인 지출 관리 시스템</p>
+      </div>
+      <div class="login-input-wrap">
+        <i class="fas fa-user"></i>
+        <input type="text" id="loginId" class="login-input" placeholder="아이디 입력" autocomplete="off">
+      </div>
+      <div class="login-input-wrap">
+        <i class="fas fa-lock"></i>
+        <input type="password" id="loginPw" class="login-input" placeholder="비밀번호 입력" onkeyup="if(event.keyCode===13) executeLogin()">
+      </div>
+      <button class="btn-login" id="btnLogin" onclick="executeLogin()">로그인</button>
+    </div>
+  </div>
+
+  <div id="loading">
+    <span class="loader"></span>
+    <p style="margin-top:16px; font-weight:600; color:var(--ht-navy);">사용자 데이터를 불러오는 중...</p>
+  </div>
+
+  <div id="app-container">
+    <div id="headerArea">
+      <div class="header-bar">
+        <div class="app-brand"><i class="fas fa-gem"></i> 스마트 지출</div>
+        <div class="btn-group">
+          <button class="btn-common btn-edit" onclick="toggleEditMode()" id="btnEdit"><i class="fas fa-pen"></i> 수정</button>
+          <button class="btn-common btn-capture" onclick="captureScreen()" id="btnCapture"><i class="fas fa-camera"></i> 캡쳐</button>
+          <button class="btn-common btn-save" onclick="saveData()"><i class="fas fa-cloud-upload-alt"></i> 저장</button>
+          <button class="btn-common btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 로그아웃</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-container" id="captureArea">
+      <div class="total-card">
+        <div class="total-label">총 고정 지출 (할인 적용)</div>
+        <div class="total-amount" id="totalDisplay">0원</div>
+
+        <div class="net-spend-row">
+          <span class="net-label">순수 지출 (저축 제외) </span>
+          <span class="net-amount" id="realSpendDisplay">0원</span>
+        </div>
+
+        <div class="charts-row">
+          <div id="pie-container" class="chart-box"></div>
+          <div id="bar-container" class="chart-box"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 신용카드 -->
+    <div class="section-container">
+      <div class="section-header">
+        <span class="sh-title"><i class="far fa-credit-card" style="color:#4f46e5"></i> 신용카드</span>
+        <button class="btn-add-card" onclick="addCard()"><i class="fas fa-plus"></i> 카드 추가</button>
+      </div>
+      <div class="swipe-wrap">
+        <button class="swipe-arrow left" onclick="slideStep('credit',-1)"><i class="fas fa-chevron-left"></i></button>
+        <div class="scroller theme-cred" id="creditContainer"></div>
+        <button class="swipe-arrow right" onclick="slideStep('credit',1)"><i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div class="swipe-foot">
+        <div class="swipe-dots" id="dots_credit"></div>
+        <div class="swipe-counter" id="counter_credit">1 / 1</div>
+      </div>
+    </div>
+
+    <!-- 대출 관리 -->
+    <div class="section-container">
+      <div class="section-header">
+        <span class="sh-title"><i class="fas fa-university" style="color:#d97706"></i> 대출 관리</span>
+        <button class="btn-add-card" onclick="addLoan()"><i class="fas fa-plus"></i> 대출 추가</button>
+      </div>
+      <div class="swipe-wrap">
+        <button class="swipe-arrow left" onclick="slideStep('loan',-1)"><i class="fas fa-chevron-left"></i></button>
+        <div class="scroller theme-loan" id="loanContainer"></div>
+        <button class="swipe-arrow right" onclick="slideStep('loan',1)"><i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div class="swipe-foot">
+        <div class="swipe-dots" id="dots_loan"></div>
+        <div class="swipe-counter" id="counter_loan">1 / 1</div>
+      </div>
+    </div>
+
+    <!-- 현금 지출 -->
+    <div class="section-container">
+      <div class="section-header">
+        <span class="sh-title"><i class="fas fa-coins" style="color:#10b981"></i> 현금 지출</span>
+        <button class="btn-add-card" onclick="addCashGroup()"><i class="fas fa-plus"></i> 그룹 추가</button>
+      </div>
+      <div class="swipe-wrap">
+        <button class="swipe-arrow left" onclick="slideStep('cash',-1)"><i class="fas fa-chevron-left"></i></button>
+        <div class="scroller theme-cash" id="cashContainer"></div>
+        <button class="swipe-arrow right" onclick="slideStep('cash',1)"><i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div class="swipe-foot">
+        <div class="swipe-dots" id="dots_cash"></div>
+        <div class="swipe-counter" id="counter_cash">1 / 1</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
   <script>
-    // 일부 브라우저에서 meta refresh가 늦을 경우 대비해 즉시 이동
-    location.replace("https://script.google.com/macros/s/AKfycbwtGztWg3l_ZCePZx8ZMecep2LnDYz_HSITU1k21sVBg83enu8xLiRjiJ2WGsDdWAn4/exec");
+    /* ============================================================
+       백엔드(Apps Script) 배포 주소 — 데이터/로그인 전용 API
+       ============================================================ */
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwtGztWg3l_ZCePZx8ZMecep2LnDYz_HSITU1k21sVBg83enu8xLiRjiJ2WGsDdWAn4/exec';
+
+    /* ---- 크로스 도메인 통신 계층 ----
+       읽기(login/load): JSONP (CORS 문제 없음)
+       쓰기(save): fetch POST (no-cors) */
+    function apiGet(action, params) {
+      return new Promise((resolve, reject) => {
+        const cbName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+        let script;
+        const timer = setTimeout(() => { cleanup(); reject(new Error('요청 시간 초과')); }, 20000);
+        function cleanup() {
+          clearTimeout(timer);
+          try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+          if (script && script.parentNode) script.parentNode.removeChild(script);
+        }
+        window[cbName] = (data) => { cleanup(); resolve(data); };
+        const qs = new URLSearchParams(Object.assign({}, params, { action: action, callback: cbName }));
+        script = document.createElement('script');
+        script.src = SCRIPT_URL + '?' + qs.toString();
+        script.onerror = () => { cleanup(); reject(new Error('네트워크 오류')); };
+        document.head.appendChild(script);
+      });
+    }
+
+    function apiPost(payload) {
+      // no-cors: 서버에는 정상 전달되지만 응답 본문은 읽을 수 없음(성공으로 간주)
+      return fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    /* ============================================================
+       프리셋 목록
+       ============================================================ */
+    const CARD_LIST = ['신한카드', '삼성카드', '현대카드', 'KB국민카드', '롯데카드', '우리카드', '하나카드', 'NH농협카드', 'BC카드', '씨티카드'];
+    const BANK_LIST = ['KB국민은행', '신한은행', '우리은행', '하나은행', 'NH농협은행', 'IBK기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', 'SC제일은행', '우체국', '새마을금고', '수협은행'];
+    const CASH_PRESETS = [
+      '월세', '관리비', '공과금(전기/수도)', '대출이자', '통신(TV/인터넷)',
+      '구독료(OTT 등)', '핸드폰 요금', '차량(할부/렌트)', '주차비', '유류비',
+      '대중교통비', '각종 회비', '부모님 용돈', '기부금(헌금)', '자녀 교육비', '보험료', '저축'
+    ];
+
+    /* 새로 만들 때의 기본 개수(항목) */
+    const CONFIG = { cardItems: 5, cashItems: 4 };
+
+    const SECTIONS = {
+      credit: { container: 'creditContainer', dots: 'dots_credit', counter: 'counter_credit' },
+      loan:   { container: 'loanContainer',   dots: 'dots_loan',   counter: 'counter_loan' },
+      cash:   { container: 'cashContainer',   dots: 'dots_cash',   counter: 'counter_cash' }
+    };
+
+    let appData = { cards: [], loans: [], cashGroups: [] };
+    let isEditMode = false;
+    let currentUser = null;
+
+    Highcharts.setOptions({ lang: { thousandsSep: ',' }, credits: { enabled: false } });
+
+    window.onload = function () { /* 로그인 대기 */ };
+
+    /* ============================================================
+       로그인 / 로그아웃 / 데이터 로드
+       ============================================================ */
+    function executeLogin() {
+      const id = document.getElementById('loginId').value.trim();
+      const pw = document.getElementById('loginPw').value.trim();
+      const btn = document.getElementById('btnLogin');
+
+      if (!id || !pw) { showToast('아이디와 비밀번호를 입력해주세요.', true); return; }
+
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로그인 중...';
+      btn.disabled = true;
+
+      apiGet('login', { username: id, password: pw })
+        .then(res => {
+          if (res && res.success) {
+            currentUser = res.username;
+            showToast(`환영합니다, ${res.name}님!`);
+            document.getElementById('login-screen').style.opacity = '0';
+            setTimeout(() => {
+              document.getElementById('login-screen').style.display = 'none';
+              document.getElementById('app-container').style.display = 'block';
+              loadDataForUser();
+            }, 500);
+          } else {
+            btn.innerHTML = '로그인';
+            btn.disabled = false;
+            showToast((res && res.message) ? res.message : '로그인에 실패했습니다.', true);
+          }
+        })
+        .catch(() => {
+          btn.innerHTML = '로그인';
+          btn.disabled = false;
+          showToast('서버 연결에 실패했습니다. 배포 주소를 확인해주세요.', true);
+        });
+    }
+
+    function logout() {
+      currentUser = null;
+      isEditMode = false;
+
+      document.getElementById('loginId').value = '';
+      document.getElementById('loginPw').value = '';
+      document.getElementById('btnLogin').innerHTML = '로그인';
+      document.getElementById('btnLogin').disabled = false;
+
+      initEmptyData();
+      renderAll();
+
+      document.getElementById('app-container').style.display = 'none';
+      const loginScreen = document.getElementById('login-screen');
+      loginScreen.style.display = 'flex';
+
+      setTimeout(() => {
+        loginScreen.style.opacity = '1';
+        showToast('안전하게 로그아웃 되었습니다.');
+      }, 50);
+    }
+
+    function loadDataForUser() {
+      document.getElementById('loading').style.display = 'flex';
+      isEditMode = false;
+      initEmptyData();
+
+      apiGet('load', { username: currentUser })
+        .then(res => {
+          const data = res ? res.data : null;
+          if (data) {
+            try {
+              const parsed = (typeof data === 'string') ? JSON.parse(data) : data;
+              normalizeData(parsed);
+            } catch (e) { console.error(e); }
+          }
+          renderAll();
+          document.getElementById('loading').style.display = 'none';
+        })
+        .catch(() => {
+          renderAll();
+          document.getElementById('loading').style.display = 'none';
+        });
+    }
+
+    /* ============================================================
+       데이터 초기화 / 정규화
+       ============================================================ */
+    function blankCard() {
+      return { name: '', threshold: 0, discountAmount: 0,
+        items: Array(CONFIG.cardItems).fill().map(() => ({ name: '', amount: 0, excluded: false })) };
+    }
+    function blankLoan() {
+      return { name: '', type: '', principal: 0, rate: 0, method: 'amortization', term: 1, startDate: '', payment: 0 };
+    }
+    function blankCashGroup() {
+      return { name: '', items: Array(CONFIG.cashItems).fill().map(() => ({ date: null, name: '', bank: '', amount: 0 })) };
+    }
+
+    function initEmptyData() {
+      appData = { cards: [], loans: [], cashGroups: [] };
+      for (let i = 0; i < 3; i++) appData.cards.push(blankCard());
+      for (let i = 0; i < 3; i++) appData.loans.push(blankLoan());
+      for (let i = 0; i < 3; i++) appData.cashGroups.push(blankCashGroup());
+    }
+
+    function normalizeData(parsed) {
+      if (!parsed || typeof parsed !== 'object') return;
+      if (Array.isArray(parsed.cards)) appData.cards = parsed.cards;
+      if (Array.isArray(parsed.loans)) appData.loans = parsed.loans;
+      if (Array.isArray(parsed.cashGroups)) appData.cashGroups = parsed.cashGroups;
+
+      appData.cards.forEach(c => {
+        if (!Array.isArray(c.items)) c.items = [];
+        if (typeof c.discountAmount === 'undefined') c.discountAmount = 0;
+        if (typeof c.threshold === 'undefined') c.threshold = 0;
+        c.items.forEach(it => { if (typeof it.excluded === 'undefined') it.excluded = false; });
+      });
+      appData.loans.forEach(l => {
+        if (typeof l.method === 'undefined') l.method = 'amortization';
+        if (!l.term) l.term = 1;
+      });
+      appData.cashGroups.forEach(g => { if (!Array.isArray(g.items)) g.items = []; });
+
+      // 최소 1개 보장(스와이프용 슬라이드가 있어야 함)
+      if (appData.cards.length === 0) appData.cards.push(blankCard());
+      if (appData.loans.length === 0) appData.loans.push(blankLoan());
+      if (appData.cashGroups.length === 0) appData.cashGroups.push(blankCashGroup());
+    }
+
+    function getOptionsHtml(type) {
+      const list = type === 'card' ? CARD_LIST : (type === 'cash' ? CASH_PRESETS : BANK_LIST);
+      let html = `<option value="" disabled selected>선택</option>`;
+      list.forEach(name => { html += `<option value="${name}">${name}</option>`; });
+      return html;
+    }
+
+    /* ============================================================
+       수정 모드
+       ============================================================ */
+    function applyEditState() {
+      const btn = document.getElementById('btnEdit');
+      const cards = document.querySelectorAll('#app-container .card');
+      const inputs = document.querySelectorAll('#app-container input, #app-container select');
+
+      if (isEditMode) {
+        btn.innerHTML = '<i class="fas fa-check"></i> 완료';
+        btn.classList.add('active');
+        cards.forEach(c => c.classList.add('editing'));
+        inputs.forEach(el => { if (!el.closest('.btn-group')) { el.readOnly = false; el.disabled = false; } });
+      } else {
+        btn.innerHTML = '<i class="fas fa-pen"></i> 수정';
+        btn.classList.remove('active');
+        cards.forEach(c => c.classList.remove('editing'));
+        inputs.forEach(el => {
+          if (!el.closest('.btn-group')) {
+            el.readOnly = true;
+            if (el.type === 'checkbox' || el.tagName === 'SELECT') el.disabled = true;
+          }
+        });
+      }
+    }
+
+    function toggleEditMode() { isEditMode = !isEditMode; applyEditState(); }
+    function ensureEdit() { if (!isEditMode) { isEditMode = true; } }
+
+    function renderAll() {
+      renderCards(); renderLoans(); renderCash();
+      applyEditState();
+      calculateAll();
+    }
+
+    /* ============================================================
+       렌더 — 신용카드
+       ============================================================ */
+    function renderCards() {
+      const con = document.getElementById('creditContainer');
+      con.innerHTML = '';
+      appData.cards.forEach((c, idx) => {
+        let perfSum = 0;
+        c.items.forEach(item => { if (!item.excluded) perfSum += (item.amount || 0); });
+
+        let percent = 0;
+        if (c.threshold > 0) percent = Math.min(100, (perfSum / c.threshold) * 100);
+        const isPassed = c.threshold > 0 && perfSum >= c.threshold;
+        const progressColorClass = isPassed ? 'success' : '';
+        const remainText = c.threshold > 0 ? (c.threshold - perfSum > 0 ? (c.threshold - perfSum).toLocaleString() + '원 남음' : '달성완료!') : '-';
+
+        const itemsHtml = c.items.map((item, iIdx) => {
+          const excludedClass = item.excluded ? 'excluded' : '';
+          const checkedState = item.excluded ? 'checked' : '';
+          return `
+          <div class="input-group ${excludedClass}">
+            <input type="text" class="inp-text" placeholder="항목명" value="${item.name}" onchange="update('cardItem', ${idx}, ${iIdx}, 'name', this.value)">
+            <input type="text" inputmode="numeric" class="inp-money" placeholder="0"
+              value="${item.amount ? item.amount.toLocaleString() : ''}"
+              oninput="handleMoneyInput(this, 'cardItem', ${idx}, ${iIdx}, 'amount')">
+            <input type="checkbox" class="chk-exclude" ${checkedState} onchange="update('cardItem', ${idx}, ${iIdx}, 'excluded', this.checked)">
+            <span class="exclude-label">실적제외</span>
+            <button class="item-del" onclick="removeCardItem(${idx}, ${iIdx})"><i class="fas fa-times"></i></button>
+          </div>
+        `; }).join('');
+
+        con.innerHTML += `
+          <div class="slide"><div class="card">
+            <div class="card-header">
+              <button class="card-del" onclick="removeCard(${idx})"><i class="fas fa-trash"></i></button>
+              <div class="header-split">
+                <div class="split-col col-60">
+                  <span class="header-label">카드명</span>
+                  <div class="title-row-wrap">
+                    <div class="select-wrapper">
+                      <i class="fas fa-chevron-down select-icon"></i>
+                      <select class="title-helper-select" onchange="applyPreset('cardName_${idx}', this.value, 'cardMeta', ${idx})">
+                        ${getOptionsHtml('card')}
+                      </select>
+                    </div>
+                    <input type="text" class="title-input" placeholder="카드사 입력" id="cardName_${idx}" value="${c.name}" onchange="update('cardMeta', ${idx}, null, 'name', this.value)">
+                  </div>
+                  <div class="discount-wrap">
+                    <span class="discount-label">할인금액</span>
+                    <input type="text" inputmode="numeric" class="discount-input" placeholder="0"
+                      value="${c.discountAmount ? c.discountAmount.toLocaleString() : ''}"
+                      oninput="handleMoneyInput(this, 'cardMeta', ${idx}, null, 'discountAmount')">
+                    <span style="font-size:12px; font-weight:700; color:#fff;">원</span>
+                  </div>
+                </div>
+                <div class="split-col col-40">
+                  <span class="header-label">실적기준(원)</span>
+                  <div class="title-row-wrap">
+                    <input type="text" inputmode="numeric" class="title-input threshold-val" placeholder="0"
+                      value="${c.threshold ? c.threshold.toLocaleString() : ''}"
+                      oninput="handleMoneyInput(this, 'cardMeta', ${idx}, null, 'threshold')">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              ${itemsHtml}
+              <button class="btn-add-item" onclick="addCardItem(${idx})"><i class="fas fa-plus"></i> 항목 추가</button>
+              <div style="margin-top: 4px;">
+                <div class="progress-track">
+                  <div class="progress-fill ${progressColorClass}" id="progBar_${idx}" style="width: ${percent}%"></div>
+                </div>
+                <div class="progress-text">
+                  <span id="progPer_${idx}">${percent.toFixed(0)}% 달성</span>
+                  <span id="progRemain_${idx}">${remainText}</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <span class="footer-label">할인 후 합계</span>
+              <span class="badge-pass" id="cardBadge_${idx}">🎉 실적달성</span>
+              <span class="footer-val c-cred" id="cardSum_${idx}">0원</span>
+            </div>
+          </div></div>
+        `;
+      });
+      buildSwipeNav('credit');
+    }
+
+    /* ============================================================
+       렌더 — 대출
+       ============================================================ */
+    function renderLoans() {
+      const con = document.getElementById('loanContainer');
+      con.innerHTML = '';
+      appData.loans.forEach((l, idx) => {
+        con.innerHTML += `
+          <div class="slide"><div class="card">
+            <div class="card-header" style="padding: 16px 20px; white-space:nowrap;">
+              <button class="card-del" onclick="removeLoan(${idx})"><i class="fas fa-trash"></i></button>
+              <div class="title-row-wrap">
+                <i class="fas fa-university" style="font-size:20px; opacity:0.8; margin-right:8px;"></i>
+                <div class="select-wrapper">
+                  <i class="fas fa-chevron-down select-icon"></i>
+                  <select class="title-helper-select" onchange="applyPreset('loanName_${idx}', this.value, 'loan', ${idx}, 'name')">
+                    ${getOptionsHtml('bank')}
+                  </select>
+                </div>
+                <input type="text" class="title-input" placeholder="은행명 입력" id="loanName_${idx}" value="${l.name}" onchange="update('loan', ${idx}, null, 'name', this.value)">
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="loan-row">
+                <div class="loan-field wide"><span class="loan-label">원금(원)</span><input type="text" inputmode="numeric" class="inp-loan" placeholder="0" value="${l.principal ? l.principal.toLocaleString() : ''}" oninput="handleMoneyInput(this, 'loan', ${idx}, null, 'principal')"></div>
+                <div class="loan-field narrow"><span class="loan-label">금리(%)</span><input type="number" class="inp-loan" placeholder="0.0" step="0.1" value="${l.rate ? l.rate : ''}" oninput="update('loan', ${idx}, null, 'rate', this.value)"></div>
+                <div class="loan-field narrow"><span class="loan-label">기간(년)</span><input type="number" class="inp-loan" placeholder="1" value="${l.term}" oninput="update('loan', ${idx}, null, 'term', this.value)"></div>
+              </div>
+              <div class="loan-row">
+                <div class="loan-field half"><span class="loan-label">대출 종류</span><input type="text" class="inp-loan" placeholder="예: 주택담보" value="${l.type || ''}" onchange="update('loan', ${idx}, null, 'type', this.value)"></div>
+                <div class="loan-field half"><span class="loan-label">상환 방식</span><select class="inp-loan" onchange="update('loan', ${idx}, null, 'method', this.value)"><option value="amortization" ${l.method === 'amortization' ? 'selected' : ''}>원리금균등</option><option value="principal_equal" ${l.method === 'principal_equal' ? 'selected' : ''}>원금균등</option><option value="interest_only" ${l.method === 'interest_only' ? 'selected' : ''}>만기일시</option></select></div>
+              </div>
+              <div class="loan-row">
+                <div class="loan-field half"><span class="loan-label">대출 시작일</span><input type="date" class="inp-date" value="${l.startDate || ''}" onchange="update('loan', ${idx}, null, 'startDate', this.value)"></div>
+                <div class="loan-field half"><span class="loan-label">남은 잔액 <small>(예상)</small></span><div class="inp-loan" style="background:#f0fdf4; text-align:right; border-color:#86efac;"><span id="loanBal_${idx}" class="balance-val">0원</span></div></div>
+              </div>
+            </div>
+            <div class="card-footer"><span class="footer-label">월 예상 납입금</span><span class="footer-val c-loan" id="loanSum_${idx}">0원</span></div>
+          </div></div>
+        `;
+      });
+      buildSwipeNav('loan');
+    }
+
+    /* ============================================================
+       렌더 — 현금 지출
+       ============================================================ */
+    function renderCash() {
+      const con = document.getElementById('cashContainer');
+      con.innerHTML = '';
+      appData.cashGroups.forEach((g, idx) => {
+        let itemsHtml = g.items.map((item, iIdx) => `
+          <div class="cash-item">
+            <div class="cash-top-row">
+              <div class="cash-date-wrap">
+                <i class="far fa-calendar-alt"></i>
+                <input type="number" class="cash-date-inp" value="${item.date ? item.date : ''}" onchange="update('cashItem', ${idx}, ${iIdx}, 'date', this.value)">
+                <span class="cash-date-label">일</span>
+              </div>
+              <input type="text" class="cash-bank-inp" placeholder="은행명" value="${item.bank}" onchange="update('cashItem', ${idx}, ${iIdx}, 'bank', this.value)">
+              <input type="text" inputmode="numeric" class="cash-money-inp" placeholder="0" value="${item.amount ? item.amount.toLocaleString() : ''}" oninput="handleMoneyInput(this, 'cashItem', ${idx}, ${iIdx}, 'amount')">
+            </div>
+            <div class="cash-bot-row">
+              <input type="text" class="cash-desc-inp" placeholder="내용을 입력하세요" value="${item.name}" onchange="update('cashItem', ${idx}, ${iIdx}, 'name', this.value)">
+              <button class="item-del" onclick="removeCashItem(${idx}, ${iIdx})"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+        `).join('');
+
+        con.innerHTML += `
+          <div class="slide"><div class="card">
+            <div class="card-header" style="padding: 16px 20px;">
+              <button class="card-del" onclick="removeCashGroup(${idx})"><i class="fas fa-trash"></i></button>
+              <div class="title-row-wrap">
+                <div class="select-wrapper">
+                  <i class="fas fa-chevron-down select-icon"></i>
+                  <select class="title-helper-select" onchange="applyPreset('cashName_${idx}', this.value, 'cashMeta', ${idx})">
+                    ${getOptionsHtml('cash')}
+                  </select>
+                </div>
+                <input type="text" class="title-input" placeholder="그룹명 (예: 공과금)" id="cashName_${idx}" value="${g.name}" onchange="update('cashMeta', ${idx}, null, 'name', this.value)">
+              </div>
+            </div>
+            <div class="card-body" style="gap:12px">
+              ${itemsHtml}
+              <button class="btn-add-item" onclick="addCashItem(${idx})"><i class="fas fa-plus"></i> 항목 추가</button>
+            </div>
+            <div class="card-footer"><span class="footer-label">합계</span><span class="footer-val c-cash" id="cashSum_${idx}">0원</span></div>
+          </div></div>
+        `;
+      });
+      buildSwipeNav('cash');
+    }
+
+    /* ============================================================
+       + 추가 / − 삭제
+       ============================================================ */
+    function addCardItem(ci) {
+      ensureEdit();
+      appData.cards[ci].items.push({ name: '', amount: 0, excluded: false });
+      renderCards(); applyEditState(); calculateAll();
+      goToSlide('credit', ci);
+    }
+    function removeCardItem(ci, ii) {
+      appData.cards[ci].items.splice(ii, 1);
+      renderCards(); applyEditState(); calculateAll();
+      goToSlide('credit', ci);
+    }
+    function addCard() {
+      ensureEdit();
+      appData.cards.push(blankCard());
+      renderCards(); applyEditState(); calculateAll();
+      goToSlide('credit', appData.cards.length - 1);
+    }
+    function removeCard(ci) {
+      if (appData.cards.length <= 1) { showToast('카드는 최소 1개가 필요합니다.', true); return; }
+      appData.cards.splice(ci, 1);
+      renderCards(); applyEditState(); calculateAll();
+      goToSlide('credit', Math.max(0, ci - 1));
+    }
+
+    function addLoan() {
+      ensureEdit();
+      appData.loans.push(blankLoan());
+      renderLoans(); applyEditState(); calculateAll();
+      goToSlide('loan', appData.loans.length - 1);
+    }
+    function removeLoan(li) {
+      if (appData.loans.length <= 1) { showToast('대출은 최소 1개가 필요합니다.', true); return; }
+      appData.loans.splice(li, 1);
+      renderLoans(); applyEditState(); calculateAll();
+      goToSlide('loan', Math.max(0, li - 1));
+    }
+
+    function addCashItem(gi) {
+      ensureEdit();
+      appData.cashGroups[gi].items.push({ date: null, name: '', bank: '', amount: 0 });
+      renderCash(); applyEditState(); calculateAll();
+      goToSlide('cash', gi);
+    }
+    function removeCashItem(gi, ii) {
+      appData.cashGroups[gi].items.splice(ii, 1);
+      renderCash(); applyEditState(); calculateAll();
+      goToSlide('cash', gi);
+    }
+    function addCashGroup() {
+      ensureEdit();
+      appData.cashGroups.push(blankCashGroup());
+      renderCash(); applyEditState(); calculateAll();
+      goToSlide('cash', appData.cashGroups.length - 1);
+    }
+    function removeCashGroup(gi) {
+      if (appData.cashGroups.length <= 1) { showToast('그룹은 최소 1개가 필요합니다.', true); return; }
+      appData.cashGroups.splice(gi, 1);
+      renderCash(); applyEditState(); calculateAll();
+      goToSlide('cash', Math.max(0, gi - 1));
+    }
+
+    /* ============================================================
+       스와이프 내비게이션 (한 화면 한 개 + 도트/카운터/화살표)
+       ============================================================ */
+    function slideWidth(key) {
+      const el = document.getElementById(SECTIONS[key].container);
+      const slide = el.querySelector('.slide');
+      return slide ? slide.getBoundingClientRect().width : el.clientWidth;
+    }
+    function currentIndex(key) {
+      const el = document.getElementById(SECTIONS[key].container);
+      const w = slideWidth(key);
+      return w ? Math.round(el.scrollLeft / w) : 0;
+    }
+    function slideStep(key, dir) {
+      const el = document.getElementById(SECTIONS[key].container);
+      el.scrollBy({ left: dir * slideWidth(key), behavior: 'smooth' });
+    }
+    function goToSlide(key, i) {
+      const el = document.getElementById(SECTIONS[key].container);
+      el.scrollTo({ left: i * slideWidth(key), behavior: 'smooth' });
+      // 렌더 직후 레이아웃이 준비되기 전일 수 있으므로 한 번 더 보정
+      setTimeout(() => { el.scrollLeft = i * slideWidth(key); updateSwipeActive(key); }, 30);
+    }
+    function buildSwipeNav(key) {
+      const s = SECTIONS[key];
+      const el = document.getElementById(s.container);
+      const dotsEl = document.getElementById(s.dots);
+      const n = el.querySelectorAll('.slide').length;
+
+      dotsEl.innerHTML = '';
+      for (let i = 0; i < n; i++) {
+        const d = document.createElement('span');
+        d.className = 'dot' + (i === 0 ? ' active' : '');
+        d.onclick = () => goToSlide(key, i);
+        dotsEl.appendChild(d);
+      }
+      if (!el._swipeBound) {
+        el.addEventListener('scroll', () => {
+          if (el._raf) cancelAnimationFrame(el._raf);
+          el._raf = requestAnimationFrame(() => updateSwipeActive(key));
+        });
+        el._swipeBound = true;
+      }
+      updateSwipeActive(key);
+    }
+    function updateSwipeActive(key) {
+      const s = SECTIONS[key];
+      const el = document.getElementById(s.container);
+      const n = el.querySelectorAll('.slide').length;
+      if (!n) { document.getElementById(s.counter).innerText = '0 / 0'; return; }
+      let idx = currentIndex(key);
+      if (idx < 0) idx = 0; if (idx > n - 1) idx = n - 1;
+      const dots = document.getElementById(s.dots).children;
+      for (let i = 0; i < dots.length; i++) dots[i].classList.toggle('active', i === idx);
+      document.getElementById(s.counter).innerText = (idx + 1) + ' / ' + n;
+    }
+
+    /* ============================================================
+       입력 처리 / 계산 / 저장 / 캡쳐
+       ============================================================ */
+    function applyPreset(inputId, value, type, major, field = 'name') {
+      const input = document.getElementById(inputId);
+      input.value = value;
+      update(type, major, null, field, value);
+    }
+
+    function handleMoneyInput(el, type, major, minor, field) {
+      let rawVal = el.value.replace(/,/g, '');
+      if (isNaN(rawVal) || rawVal === '') rawVal = rawVal.replace(/\D/g, '');
+      const numVal = Number(rawVal);
+      if (rawVal === '') el.value = ''; else el.value = numVal.toLocaleString('ko-KR');
+      update(type, major, minor, field, numVal);
+    }
+
+    function update(type, major, minor, field, val) {
+      if (['rate', 'term', 'date', 'discountAmount'].includes(field)) val = Number(val);
+      if (type === 'cardMeta') appData.cards[major][field] = val;
+      if (type === 'cardItem') appData.cards[major].items[minor][field] = val;
+      if (type === 'loan') appData.loans[major][field] = val;
+      if (type === 'cashMeta') appData.cashGroups[major][field] = val;
+      if (type === 'cashItem') appData.cashGroups[major].items[minor][field] = val;
+      calculateAll();
+    }
+
+    function animateValue(id, start, end, duration) {
+      const obj = document.getElementById(id);
+      if (!obj) return;
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const val = Math.floor(progress * (end - start) + start);
+        obj.innerHTML = val.toLocaleString('ko-KR') + '원';
+        if (progress < 1) window.requestAnimationFrame(step);
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    function calculateAll() {
+      let tCardNet = 0, tLoan = 0, tCash = 0, tDiscount = 0;
+      let cashAggregator = {};
+      let totalSavings = 0;
+
+      appData.cards.forEach((c, i) => {
+        let rawSum = 0;
+        let perfSum = 0;
+        c.items.forEach(item => {
+          const amt = item.amount || 0;
+          rawSum += amt;
+          if (!item.excluded) perfSum += amt;
+        });
+        const discountAmt = c.discountAmount || 0;
+        const netSum = Math.max(0, rawSum - discountAmt);
+        const cardSumEl = document.getElementById(`cardSum_${i}`);
+        if (cardSumEl) cardSumEl.innerText = fmt(netSum);
+
+        const badge = document.getElementById(`cardBadge_${i}`);
+        let percent = 0;
+        if (c.threshold > 0) percent = Math.min(100, (perfSum / c.threshold) * 100);
+
+        const progBar = document.getElementById(`progBar_${i}`);
+        const progPer = document.getElementById(`progPer_${i}`);
+        const progRemain = document.getElementById(`progRemain_${i}`);
+
+        if (progBar && progPer && progRemain) {
+          progBar.style.width = percent + '%';
+          progPer.innerText = percent.toFixed(0) + '% 달성';
+
+          if (c.threshold > 0) {
+            if (perfSum >= c.threshold) {
+              progBar.classList.add('success');
+              if (badge) badge.classList.add('active');
+              progRemain.innerText = '달성완료!';
+            } else {
+              progBar.classList.remove('success');
+              if (badge) badge.classList.remove('active');
+              progRemain.innerText = (c.threshold - perfSum).toLocaleString() + '원 남음';
+            }
+          } else {
+            progRemain.innerText = '-';
+            progBar.classList.remove('success');
+            if (badge) badge.classList.remove('active');
+          }
+        }
+        tCardNet += netSum; tDiscount += discountAmt;
+      });
+
+      appData.loans.forEach((l, i) => {
+        let pmt = 0; const P = l.principal || 0, r = (l.rate || 0) / 100 / 12, n = (l.term || 1) * 12;
+        if (P > 0) { if (l.method === 'interest_only') pmt = P * r; else if (l.method === 'principal_equal') pmt = (P / n) + (P * r); else pmt = r === 0 ? P / n : (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1); }
+        l.payment = Math.round(pmt);
+        const loanSumEl = document.getElementById(`loanSum_${i}`);
+        if (loanSumEl) loanSumEl.innerText = fmt(l.payment);
+        tLoan += l.payment;
+        let balance = P;
+        if (l.startDate && P > 0 && l.method !== 'interest_only') {
+          const start = new Date(l.startDate); const now = new Date();
+          let monthsPassed = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+          if (monthsPassed < 0) monthsPassed = 0; if (monthsPassed > n) monthsPassed = n;
+          if (l.method === 'principal_equal') balance = P - ((P / n) * monthsPassed);
+          else if (l.method === 'amortization' && r > 0) { const top = Math.pow(1 + r, n) - Math.pow(1 + r, monthsPassed); const bot = Math.pow(1 + r, n) - 1; balance = P * (top / bot); }
+          else if (l.method === 'amortization' && r === 0) balance = P - ((P / n) * monthsPassed);
+        }
+        const loanBalEl = document.getElementById(`loanBal_${i}`);
+        if (loanBalEl) loanBalEl.innerText = fmt(Math.max(0, balance));
+      });
+
+      appData.cashGroups.forEach((g, i) => {
+        const s = g.items.reduce((a, b) => a + (b.amount || 0), 0);
+        const cashSumEl = document.getElementById(`cashSum_${i}`);
+        if (cashSumEl) cashSumEl.innerText = fmt(s);
+        tCash += s;
+
+        if (s > 0) {
+          const groupName = g.name && g.name.trim() !== '' ? g.name : `그룹 ${i + 1}`;
+          if (cashAggregator[groupName]) cashAggregator[groupName] += s;
+          else cashAggregator[groupName] = s;
+          if (groupName === '저축') totalSavings += s;
+        }
+      });
+
+      const grandTotal = tCardNet + tLoan + tCash;
+      const realSpend = grandTotal - totalSavings;
+
+      animateValue('totalDisplay', 0, grandTotal, 500);
+      animateValue('realSpendDisplay', 0, realSpend, 500);
+
+      const cashBreakdown = Object.keys(cashAggregator).map(key => ({ name: key, y: cashAggregator[key] }));
+      updateCharts(tCardNet, tLoan, tCash, tDiscount, cashBreakdown);
+    }
+
+    function updateCharts(c, l, k, d, cashData) {
+      Highcharts.chart('pie-container', {
+        chart: { type: 'pie', options3d: { enabled: true, alpha: 45, beta: 0 }, backgroundColor: 'transparent', spacing: [10, 10, 10, 10] },
+        exporting: { enabled: false }, title: { text: null },
+        tooltip: { pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b> ({point.y:,.0f}원)' },
+        plotOptions: { pie: { allowPointSelect: true, cursor: 'pointer', depth: 35, dataLabels: { enabled: true, allowOverlap: true, format: '<b>{point.name}</b><br>{point.y:,.0f}원', style: { fontSize: '12px', fontWeight: 'normal', textOverflow: 'clip' } } } },
+        responsive: { rules: [{ condition: { maxWidth: 500 }, chartOptions: { plotOptions: { pie: { size: '60%', dataLabels: { distance: 10, style: { fontSize: '9px' } } } } } }] },
+        series: [{ name: '금액', data: [{ name: '카드', y: c, color: '#4f46e5' }, { name: '대출', y: l, color: '#f59e0b' }, { name: '현금', y: k, color: '#10b981' }, { name: '할인', y: d, color: '#8B5CF6', sliced: true, selected: true }] }]
+      });
+
+      Highcharts.chart('bar-container', {
+        chart: { type: 'column', options3d: { enabled: true, alpha: 10, beta: 25, depth: 70 }, backgroundColor: 'transparent' },
+        exporting: { enabled: false }, title: { text: '현금 지출 상세', style: { fontSize: '14px', color: '#6B7280', fontWeight: 'bold' } },
+        xAxis: { type: 'category', labels: { style: { fontSize: '11px' } } },
+        yAxis: { title: { text: null } }, legend: { enabled: false },
+        tooltip: { pointFormat: '<b>{point.y:,.0f}원</b>' },
+        plotOptions: { column: { depth: 25, colorByPoint: true, dataLabels: { enabled: true, allowOverlap: true, crop: false, overflow: 'none', format: '{point.y:,.0f}', style: { fontSize: '9px' } } } },
+        colors: ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444', '#14B8A6', '#F97316', '#64748B', '#A855F7', '#D946EF'],
+        series: [{ name: '현금지출', data: cashData.length ? cashData : [{ name: '없음', y: 0 }] }]
+      });
+    }
+
+    function showToast(message, isError = false) {
+      const x = document.getElementById("toast");
+      x.innerHTML = message; x.className = "show";
+      if (isError) x.classList.add("error"); else x.classList.remove("error");
+      setTimeout(function () { x.className = x.className.replace("show", ""); }, 3000);
+    }
+
+    function saveData() {
+      if (!currentUser) { showToast('로그인이 필요합니다.', true); return; }
+
+      const btn = document.querySelector('.btn-save'); const origin = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> 저장 중'; btn.disabled = true;
+
+      apiPost({ action: 'save', username: currentUser, data: JSON.stringify(appData) })
+        .then(() => {
+          btn.innerHTML = origin; btn.disabled = false;
+          showToast('<i class="fas fa-check-circle"></i> 저장 완료!');
+        })
+        .catch(() => {
+          btn.innerHTML = origin; btn.disabled = false;
+          showToast('<i class="fas fa-exclamation-circle"></i> 저장 실패', true);
+        });
+    }
+
+    function captureScreen() {
+      const btn = document.getElementById('btnCapture');
+      const origText = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 진행중';
+      window.scrollTo(0, 0);
+
+      const header = document.getElementById('headerArea');
+      const dashboard = document.getElementById('captureArea');
+
+      const container = document.createElement('div');
+      container.style.position = 'absolute'; container.style.top = '0'; container.style.left = '0';
+      container.style.width = '100%'; container.style.zIndex = '-9999'; container.style.background = '#F3F4F6';
+
+      const headerClone = header.cloneNode(true);
+      const dashboardClone = dashboard.cloneNode(true);
+
+      const btns = headerClone.querySelector('.btn-group');
+      if (btns) btns.style.display = 'none';
+
+      container.appendChild(headerClone);
+      container.appendChild(dashboardClone);
+      document.body.appendChild(container);
+
+      html2canvas(container).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `스마트_지출_결산_${new Date().toISOString().slice(0, 10)}.png`;
+        link.href = canvas.toDataURL(); link.click();
+
+        document.body.removeChild(container); btn.innerHTML = origText;
+        showToast('<i class="fas fa-camera"></i> 캡쳐 완료!');
+      }).catch(err => {
+        document.body.removeChild(container); btn.innerHTML = origText;
+        showToast('<i class="fas fa-times"></i> 캡쳐 실패', true);
+      });
+    }
+
+    function fmt(n) { return Math.round(n).toLocaleString('ko-KR') + '원'; }
   </script>
-</body>
-</html>
 </body>
 </html>
