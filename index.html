@@ -248,8 +248,11 @@
     }
     .discount-input::placeholder { color: rgba(167, 243, 208, 0.5); }
 
-    .select-wrapper { position: relative; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .select-icon { color: rgba(255,255,255,0.8); font-size: 12px; }
+    .select-wrapper { position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 7px; background: rgba(255,255,255,0.22); }
+    .select-icon { color: #fff; font-size: 14px; }
+    /* 신용카드 항목의 분류 선택(본문/흰 배경) — 진한 색 화살표 */
+    .item-cat-select { background: #EEF2FF; }
+    .item-cat-select .select-icon { color: var(--primary); }
     .title-helper-select { position: absolute; inset: 0; opacity: 0; cursor: pointer; width:100%; height:100%; }
 
     .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
@@ -637,7 +640,7 @@
 
     function getOptionsHtml(type) {
       const list = type === 'card' ? CARD_LIST : (type === 'cash' ? CASH_PRESETS : BANK_LIST);
-      let html = `<option value="" disabled selected>선택</option>`;
+      let html = `<option value="" disabled selected></option>`;
       list.forEach(name => { html += `<option value="${name}">${name}</option>`; });
       return html;
     }
@@ -698,7 +701,13 @@
           const checkedState = item.excluded ? 'checked' : '';
           return `
           <div class="input-group ${excludedClass}">
-            <input type="text" class="inp-text" placeholder="항목명" value="${item.name}" onchange="update('cardItem', ${idx}, ${iIdx}, 'name', this.value)">
+            <div class="select-wrapper item-cat-select">
+              <i class="fas fa-chevron-down select-icon"></i>
+              <select class="title-helper-select" onchange="applyCardItemCat(${idx}, ${iIdx}, this.value)">
+                ${getOptionsHtml('cash')}
+              </select>
+            </div>
+            <input type="text" class="inp-text" id="cardItemName_${idx}_${iIdx}" placeholder="항목/분류" value="${item.name}" onchange="update('cardItem', ${idx}, ${iIdx}, 'name', this.value)">
             <input type="text" inputmode="numeric" class="inp-money" placeholder="0"
               value="${item.amount ? item.amount.toLocaleString() : ''}"
               oninput="handleMoneyInput(this, 'cardItem', ${idx}, ${iIdx}, 'amount')">
@@ -1004,6 +1013,14 @@
       update(type, major, null, field, value);
     }
 
+    // 신용카드 항목 분류 선택 → 항목명에 분류를 채우고 그래프 집계에 반영
+    function applyCardItemCat(ci, ii, value) {
+      if (!value) return;
+      const inp = document.getElementById(`cardItemName_${ci}_${ii}`);
+      if (inp) inp.value = value;
+      update('cardItem', ci, ii, 'name', value);
+    }
+
     function handleMoneyInput(el, type, major, minor, field) {
       let rawVal = el.value.replace(/,/g, '');
       if (isNaN(rawVal) || rawVal === '') rawVal = rawVal.replace(/\D/g, '');
@@ -1038,7 +1055,7 @@
 
     function calculateAll() {
       let tCardNet = 0, tLoan = 0, tCash = 0, tDiscount = 0;
-      let cashAggregator = {};
+      let spendAgg = {};   // 카드+현금 합산 카테고리별 지출(전체 지출 상세)
       let totalSavings = 0;
 
       appData.cards.forEach((c, i) => {
@@ -1048,6 +1065,14 @@
           const amt = item.amount || 0;
           rawSum += amt;
           if (!item.excluded) perfSum += amt;
+
+          // 카드 항목을 분류별로 합산(현금과 같은 분류면 합쳐짐)
+          if (amt > 0) {
+            const nm = (item.name || '').trim();
+            const cat = CASH_PRESETS.includes(nm) ? nm : '기타(카드)';
+            spendAgg[cat] = (spendAgg[cat] || 0) + amt;
+            if (cat === '저축') totalSavings += amt;
+          }
         });
         const discountAmt = c.discountAmount || 0;
         const netSum = Math.max(0, rawSum - discountAmt);
@@ -1113,8 +1138,7 @@
 
         if (s > 0) {
           const groupName = g.name && g.name.trim() !== '' ? g.name : `그룹 ${i + 1}`;
-          if (cashAggregator[groupName]) cashAggregator[groupName] += s;
-          else cashAggregator[groupName] = s;
+          spendAgg[groupName] = (spendAgg[groupName] || 0) + s;
           if (groupName === '저축') totalSavings += s;
         }
       });
@@ -1125,7 +1149,9 @@
       animateValue('totalDisplay', 0, grandTotal, 500);
       animateValue('realSpendDisplay', 0, realSpend, 500);
 
-      const cashBreakdown = Object.keys(cashAggregator).map(key => ({ name: key, y: cashAggregator[key] }));
+      const cashBreakdown = Object.keys(spendAgg)
+        .map(key => ({ name: key, y: spendAgg[key] }))
+        .sort((a, b) => b.y - a.y);
       updateCharts(tCardNet, tLoan, tCash, tDiscount, cashBreakdown);
     }
 
@@ -1141,13 +1167,13 @@
 
       Highcharts.chart('bar-container', {
         chart: { type: 'column', options3d: { enabled: true, alpha: 10, beta: 25, depth: 70 }, backgroundColor: 'transparent' },
-        exporting: { enabled: false }, title: { text: '현금 지출 상세', style: { fontSize: '14px', color: '#6B7280', fontWeight: 'bold' } },
+        exporting: { enabled: false }, title: { text: '전체 지출 상세', style: { fontSize: '14px', color: '#6B7280', fontWeight: 'bold' } },
         xAxis: { type: 'category', labels: { style: { fontSize: '11px' } } },
         yAxis: { title: { text: null } }, legend: { enabled: false },
         tooltip: { followTouchMove: false, pointFormat: '<b>{point.y:,.0f}원</b>' },
         plotOptions: { column: { depth: 25, colorByPoint: true, dataLabels: { enabled: true, allowOverlap: true, crop: false, overflow: 'none', format: '{point.y:,.0f}', style: { fontSize: '9px' } } } },
         colors: ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444', '#14B8A6', '#F97316', '#64748B', '#A855F7', '#D946EF'],
-        series: [{ name: '현금지출', data: cashData.length ? cashData : [{ name: '없음', y: 0 }] }]
+        series: [{ name: '지출', data: cashData.length ? cashData : [{ name: '없음', y: 0 }] }]
       });
     }
 
