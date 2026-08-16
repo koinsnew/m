@@ -262,7 +262,7 @@
       padding: 9px; border-radius: 12px; border: 1px solid transparent; transition: 0.2s;
     }
     .ig-row { display: flex; align-items: center; gap: 8px; }
-    .ig-row-2 { justify-content: space-between; }
+    .ig-row-2 { justify-content: flex-start; gap: 10px; }
     .card.editing .input-group:focus-within { background: white; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
     .input-group.excluded .inp-money { text-decoration: line-through; color: #9CA3AF; }
     .input-group.excluded .inp-text { color: #9CA3AF; }
@@ -279,9 +279,16 @@
     .chk-exclude:checked::after { content: '\f00c'; font-family: "Font Awesome 6 Free"; font-weight: 900; color: white; font-size: 11px; }
     .exclude-label { white-space: nowrap; }
 
+    /* 분류 태그(선택 + 표시 겸용) */
+    .cat-picker { position: relative; display: inline-flex; align-items: center; gap: 6px; background: #EEF2FF; color: var(--primary); border: 1px solid #C7D2FE; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 800; cursor: pointer; max-width: 55%; }
+    .cat-picker.has-cat { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .cat-picker .cat-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cat-picker i { font-size: 10px; opacity: 0.8; flex-shrink: 0; }
+    .cat-picker .cat-select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
     /* 항목 삭제 (수정모드에서만) */
     .item-del {
-      display: none; align-items: center; justify-content: center; gap: 5px;
+      display: none; align-items: center; justify-content: center; gap: 5px; margin-left: auto;
       height: 30px; padding: 0 12px; border-radius: 8px; border: none; cursor: pointer;
       background: #FEE2E2; color: #EF4444; font-size: 12px; font-weight: 700; flex-shrink: 0;
     }
@@ -602,7 +609,7 @@
        ============================================================ */
     function blankCard() {
       return { name: '', threshold: 0, discountAmount: 0,
-        items: Array(CONFIG.cardItems).fill().map(() => ({ name: '', amount: 0, excluded: false })) };
+        items: Array(CONFIG.cardItems).fill().map(() => ({ name: '', amount: 0, excluded: false, category: '' })) };
     }
     function blankLoan() {
       return { name: '', type: '', principal: 0, rate: 0, method: 'amortization', term: 1, startDate: '', payment: 0 };
@@ -628,7 +635,7 @@
         if (!Array.isArray(c.items)) c.items = [];
         if (typeof c.discountAmount === 'undefined') c.discountAmount = 0;
         if (typeof c.threshold === 'undefined') c.threshold = 0;
-        c.items.forEach(it => { if (typeof it.excluded === 'undefined') it.excluded = false; });
+        c.items.forEach(it => { if (typeof it.excluded === 'undefined') it.excluded = false; if (typeof it.category === 'undefined') it.category = ''; });
       });
       appData.loans.forEach(l => {
         if (typeof l.method === 'undefined') l.method = 'amortization';
@@ -706,18 +713,19 @@
           return `
           <div class="input-group ${excludedClass}">
             <div class="ig-row">
-              <div class="select-wrapper item-cat-select">
-                <i class="fas fa-chevron-down select-icon"></i>
-                <select class="title-helper-select" onchange="applyCardItemCat(${idx}, ${iIdx}, this.value)">
-                  ${getOptionsHtml('cash')}
-                </select>
-              </div>
-              <input type="text" class="inp-text" id="cardItemName_${idx}_${iIdx}" placeholder="항목명 (분류 선택 가능)" value="${item.name}" onchange="update('cardItem', ${idx}, ${iIdx}, 'name', this.value)">
+              <input type="text" class="inp-text" id="cardItemName_${idx}_${iIdx}" placeholder="항목 내용 (예: 삼성화재 보험료)" value="${item.name}" onchange="update('cardItem', ${idx}, ${iIdx}, 'name', this.value)">
               <input type="text" inputmode="numeric" class="inp-money" placeholder="0"
                 value="${item.amount ? item.amount.toLocaleString() : ''}"
                 oninput="handleMoneyInput(this, 'cardItem', ${idx}, ${iIdx}, 'amount')">
             </div>
             <div class="ig-row ig-row-2">
+              <div class="cat-picker ${item.category ? 'has-cat' : ''}">
+                <span class="cat-text">${item.category || '분류 선택'}</span>
+                <i class="fas fa-chevron-down"></i>
+                <select class="cat-select" onchange="applyCardItemCat(${idx}, ${iIdx}, this.value)">
+                  ${getOptionsHtml('cash')}
+                </select>
+              </div>
               <label class="exclude-toggle">
                 <input type="checkbox" class="chk-exclude" ${checkedState} onchange="update('cardItem', ${idx}, ${iIdx}, 'excluded', this.checked)">
                 <span class="exclude-label">실적 제외</span>
@@ -884,7 +892,7 @@
        ============================================================ */
     function addCardItem(ci) {
       ensureEdit();
-      appData.cards[ci].items.push({ name: '', amount: 0, excluded: false });
+      appData.cards[ci].items.push({ name: '', amount: 0, excluded: false, category: '' });
       renderCards(); applyEditState(); calculateAll();
       goToSlide('credit', ci);
     }
@@ -1023,12 +1031,12 @@
       update(type, major, null, field, value);
     }
 
-    // 신용카드 항목 분류 선택 → 항목명에 분류를 채우고 그래프 집계에 반영
+    // 신용카드 항목 분류 선택 → 분류만 저장(적어둔 내용은 그대로 유지)
     function applyCardItemCat(ci, ii, value) {
       if (!value) return;
-      const inp = document.getElementById(`cardItemName_${ci}_${ii}`);
-      if (inp) inp.value = value;
-      update('cardItem', ci, ii, 'name', value);
+      appData.cards[ci].items[ii].category = value;
+      renderCards(); applyEditState(); calculateAll();
+      goToSlide('credit', ci);
     }
 
     function handleMoneyInput(el, type, major, minor, field) {
@@ -1078,8 +1086,7 @@
 
           // 카드 항목을 분류별로 합산(현금과 같은 분류면 합쳐짐)
           if (amt > 0) {
-            const nm = (item.name || '').trim();
-            const cat = CASH_PRESETS.includes(nm) ? nm : '기타(카드)';
+            const cat = (item.category && item.category.trim()) ? item.category.trim() : '기타(카드)';
             spendAgg[cat] = (spendAgg[cat] || 0) + amt;
             if (cat === '저축') totalSavings += amt;
           }
