@@ -418,7 +418,7 @@
 
     <div id="editBanner" class="edit-banner">
       <i class="fas fa-pen-ruler"></i>
-      <span>편집 모드입니다 · 내용 수정 · 항목 추가/삭제 · 순서 변경 가능 — 끝나면 상단 <b>완료</b>를 누르세요</span>
+      <span>편집 모드 - 끝나면 상단 <b>완료</b>를 누르세요</span>
     </div>
 
     <div class="dashboard-container" id="captureArea">
@@ -536,7 +536,7 @@
     const CARD_LIST = ['신한카드', '삼성카드', '현대카드', 'KB국민카드', '롯데카드', '우리카드', '하나카드', 'NH농협카드', 'BC카드', '씨티카드'];
     const BANK_LIST = ['KB국민은행', '신한은행', '우리은행', '하나은행', 'NH농협은행', 'IBK기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', 'SC제일은행', '우체국', '새마을금고', '수협은행'];
     const CASH_PRESETS = [
-      '월세', '관리비', '공과금(전기/수도)', '대출이자', '통신(TV/인터넷)',
+      '월세', '관리비', '공과금(전기/수도)', '대출이자', '생활비', '통신(TV/인터넷)',
       '구독료(OTT 등)', '핸드폰 요금', '차량(할부/렌트)', '주차비', '유류비',
       '대중교통비', '각종 회비', '부모님 용돈', '기부금(헌금)', '자녀 교육비', '보험료', '저축'
     ];
@@ -765,7 +765,7 @@
               </div>
               <label class="exclude-toggle">
                 <span class="exclude-label">실적 제외</span>
-                <input type="checkbox" class="chk-exclude" ${checkedState} onchange="update('cardItem', ${idx}, ${iIdx}, 'excluded', this.checked)">
+                <input type="checkbox" class="chk-exclude" ${checkedState} onchange="toggleExclude(${idx}, ${iIdx}, this.checked, this)">
               </label>
             </div>
             <div class="ig-row ig-row-3">
@@ -1117,6 +1117,14 @@
       appData.cards[ci].items[ii].category = value;
       renderCards(); applyEditState(); calculateAll();
       goToSlide('credit', ci);
+    }
+
+    // 실적 제외 토글 — 체크/해제 즉시 삭선·연한색 반영(해제 시 원래대로)
+    function toggleExclude(ci, ii, checked, el) {
+      appData.cards[ci].items[ii].excluded = checked;
+      const group = el.closest('.input-group');
+      if (group) group.classList.toggle('excluded', checked);
+      calculateAll();
     }
 
     function handleMoneyInput(el, type, major, minor, field) {
