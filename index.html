@@ -1223,10 +1223,9 @@
         if (loanSumEl) loanSumEl.innerText = fmt(l.payment);
         tLoan += l.payment;
 
-        // 대출도 전체 지출 상세/합계에 포함
+        // 대출도 전체 지출 상세/합계에 포함 (모든 대출은 '대출'로 합산)
         if (l.payment > 0) {
-          const lname = (l.name && l.name.trim()) ? (l.name.trim() + ' 대출') : ('대출 ' + (i + 1));
-          spendAgg[lname] = (spendAgg[lname] || 0) + l.payment;
+          spendAgg['대출'] = (spendAgg['대출'] || 0) + l.payment;
         }
         let balance = P;
         if (l.startDate && P > 0 && l.method !== 'interest_only') {
