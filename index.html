@@ -114,7 +114,20 @@
     }
     .btn-common:active { transform: scale(0.95); }
     .btn-common:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-edit { background: var(--ht-navy); } .btn-edit.active { background: #EC4899; }
+    .btn-edit { background: var(--ht-navy); } .btn-edit.active { background: #EC4899; box-shadow: 0 0 0 3px rgba(236,72,153,0.35), 0 4px 12px rgba(236,72,153,0.4); }
+
+    /* ===== 편집 모드 표시 ===== */
+    .edit-banner { display: none; }
+    #app-container.edit-on { background: #F1F0FF; }
+    #app-container.edit-on .edit-banner {
+      display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center;
+      position: sticky; top: 58px; z-index: 90;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed); color: #fff;
+      font-size: 12.5px; font-weight: 700; line-height: 1.35;
+      padding: 11px 16px; box-shadow: 0 6px 14px rgba(79,70,229,0.35);
+    }
+    #app-container.edit-on .edit-banner b { color: #FDE68A; }
+    .card.editing { border: 2.5px solid #6366F1 !important; }
     .btn-capture { background: #64748B; }
     .btn-save { background: var(--ht-gold); color: var(--ht-navy); }
     .btn-logout { background: #EF4444; color: white; }
@@ -234,6 +247,8 @@
 
     input:read-only, select:disabled { opacity: 0.7; pointer-events: none; }
     .card.editing input, .card.editing select { opacity: 1; pointer-events: auto; }
+    /* 드롭다운 투명 오버레이는 편집 모드에서도 항상 숨김(디자인 유지) */
+    .title-helper-select, .cat-select { opacity: 0 !important; }
 
     .title-input { background: transparent; border: none; color: white; font-size: 15px; font-weight: 700; flex: 1; padding: 0; min-width: 0; }
     .title-input::placeholder { color: rgba(255,255,255,0.5); }
@@ -268,7 +283,7 @@
     .input-group.excluded .inp-text { color: #9CA3AF; }
 
     .inp-text { flex: 1; border: none; background: #fff; padding: 9px 10px; font-size: 13px; letter-spacing: -0.3px; min-width: 0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
-    .inp-money { width: 118px; border: none; background: white; padding: 9px 10px; font-size: 14px; font-weight: 700; text-align: right; border-radius: 8px; color: var(--text-dark); box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-family: 'Roboto Mono', monospace; flex-shrink: 0; }
+    .inp-money { width: 92px; border: none; background: white; padding: 9px 8px; font-size: 14px; font-weight: 700; text-align: right; border-radius: 8px; color: var(--text-dark); box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-family: 'Roboto Mono', monospace; flex-shrink: 0; }
     .inp-money::placeholder { color: #D1D5DB; font-weight: 400; }
 
     /* 실적제외 토글(항상 표시) */
@@ -279,20 +294,27 @@
     .chk-exclude:checked::after { content: '\f00c'; font-family: "Font Awesome 6 Free"; font-weight: 900; color: white; font-size: 11px; }
     .exclude-label { white-space: nowrap; }
 
-    /* 분류 태그(선택 + 표시 겸용) */
-    .cat-picker { position: relative; display: inline-flex; align-items: center; gap: 6px; background: #EEF2FF; color: var(--primary); border: 1px solid #C7D2FE; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 800; cursor: pointer; max-width: 55%; }
+    /* 분류 태그(선택 + 표시 겸용) — 넓게 */
+    .cat-picker { position: relative; display: inline-flex; align-items: center; justify-content: space-between; gap: 6px; flex: 1; min-width: 0; background: #EEF2FF; color: var(--primary); border: 1px solid #C7D2FE; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 800; cursor: pointer; }
     .cat-picker.has-cat { background: #4f46e5; color: #fff; border-color: #4f46e5; }
     .cat-picker .cat-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .cat-picker i { font-size: 10px; opacity: 0.8; flex-shrink: 0; }
     .cat-picker .cat-select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
-    /* 항목 삭제 (수정모드에서만) */
+    /* 순서변경/삭제 줄 (수정모드에서만 표시) */
+    .ig-row-3 { display: none; gap: 8px; align-items: center; }
+    .card.editing .ig-row-3 { display: flex; }
+    .item-move {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid #C7D2FE; cursor: pointer;
+      background: #EEF2FF; color: var(--primary); font-size: 12px; font-weight: 700;
+    }
+    .item-move:active { transform: scale(0.96); }
     .item-del {
-      display: none; align-items: center; justify-content: center; gap: 5px; margin-left: auto;
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin-left: auto;
       height: 30px; padding: 0 12px; border-radius: 8px; border: none; cursor: pointer;
       background: #FEE2E2; color: #EF4444; font-size: 12px; font-weight: 700; flex-shrink: 0;
     }
-    .card.editing .item-del { display: inline-flex; }
 
     /* 항목 추가 버튼 */
     .btn-add-item {
@@ -383,6 +405,11 @@
           <button class="btn-common btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 로그아웃</button>
         </div>
       </div>
+    </div>
+
+    <div id="editBanner" class="edit-banner">
+      <i class="fas fa-pen-ruler"></i>
+      <span>편집 모드입니다 · 내용 수정 · 항목 추가/삭제 · 순서 변경 가능 — 끝나면 상단 <b>완료</b>를 누르세요</span>
     </div>
 
     <div class="dashboard-container" id="captureArea">
@@ -663,6 +690,7 @@
       const btn = document.getElementById('btnEdit');
       const cards = document.querySelectorAll('#app-container .card');
       const inputs = document.querySelectorAll('#app-container input, #app-container select');
+      document.getElementById('app-container').classList.toggle('edit-on', isEditMode);
 
       if (isEditMode) {
         btn.innerHTML = '<i class="fas fa-check"></i> 완료';
@@ -727,9 +755,13 @@
                 </select>
               </div>
               <label class="exclude-toggle">
-                <input type="checkbox" class="chk-exclude" ${checkedState} onchange="update('cardItem', ${idx}, ${iIdx}, 'excluded', this.checked)">
                 <span class="exclude-label">실적 제외</span>
+                <input type="checkbox" class="chk-exclude" ${checkedState} onchange="update('cardItem', ${idx}, ${iIdx}, 'excluded', this.checked)">
               </label>
+            </div>
+            <div class="ig-row ig-row-3">
+              <button class="item-move" onclick="moveCardItem(${idx}, ${iIdx}, -1)"><i class="fas fa-arrow-up"></i> 위로</button>
+              <button class="item-move" onclick="moveCardItem(${idx}, ${iIdx}, 1)"><i class="fas fa-arrow-down"></i> 아래로</button>
               <button class="item-del" onclick="removeCardItem(${idx}, ${iIdx})"><i class="fas fa-trash"></i> 삭제</button>
             </div>
           </div>
@@ -898,6 +930,14 @@
     }
     function removeCardItem(ci, ii) {
       appData.cards[ci].items.splice(ii, 1);
+      renderCards(); applyEditState(); calculateAll();
+      goToSlide('credit', ci);
+    }
+    function moveCardItem(ci, ii, dir) {
+      const items = appData.cards[ci].items;
+      const ni = ii + dir;
+      if (ni < 0 || ni >= items.length) return;
+      const t = items[ii]; items[ii] = items[ni]; items[ni] = t;
       renderCards(); applyEditState(); calculateAll();
       goToSlide('credit', ci);
     }
@@ -1186,10 +1226,12 @@
       const barH = Math.max(240, cashData.length * 44 + 90);
       const barEl = document.getElementById('bar-container');
       if (barEl) barEl.style.height = barH + 'px';
+      const barTotal = cashData.reduce((a, b) => a + (b.y || 0), 0);
 
       Highcharts.chart('bar-container', {
         chart: { type: 'bar', height: barH, backgroundColor: 'transparent', marginRight: 70 },
-        exporting: { enabled: false }, title: { text: '전체 지출 상세', style: { fontSize: '14px', color: '#6B7280', fontWeight: 'bold' } },
+        exporting: { enabled: false },
+        title: { text: '전체 지출 상세  ·  합계 ' + Math.round(barTotal).toLocaleString() + '원', style: { fontSize: '14px', color: '#111827', fontWeight: 'bold' } },
         xAxis: { type: 'category', labels: { style: { fontSize: '12px', fontWeight: '700', color: '#374151' } } },
         yAxis: { title: { text: null }, labels: { enabled: false }, gridLineWidth: 0 },
         legend: { enabled: false },
