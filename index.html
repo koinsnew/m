@@ -175,18 +175,27 @@
       flex: 0 0 100%; width: 100%; scroll-snap-align: center;
       display: flex; justify-content: center; padding: 4px 16px 24px 16px;
     }
+    .slide-inner { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 10px; }
     /* 넘어간 카드가 명확히 보이도록: 가운데 카드만 크게/선명하게 */
-    .slide .card {
-      transform: scale(0.88);
-      opacity: 0.45;
-      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.38s ease, box-shadow 0.38s ease;
+    .slide .slide-inner {
+      transform: scale(0.9);
+      opacity: 0.5;
+      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.38s ease;
       will-change: transform, opacity;
+      transform-origin: center top;
     }
-    .slide.active .card {
-      transform: scale(1);
-      opacity: 1;
-      box-shadow: 0 14px 34px -8px rgba(11, 25, 44, 0.28);
-    }
+    .slide.active .slide-inner { transform: scale(1); opacity: 1; }
+    .slide.active .card { box-shadow: 0 14px 34px -8px rgba(11, 25, 44, 0.28); }
+
+    /* 카드 순서 이동 바(편집 모드에서만) */
+    .card-move-bar { display: none; align-items: center; justify-content: space-between; gap: 8px;
+      background: #fff; border: 1.5px dashed #C7D2FE; border-radius: 12px; padding: 8px 10px; }
+    #app-container.edit-on .card-move-bar { display: flex; }
+    .card-move { display: inline-flex; align-items: center; gap: 5px; background: #4f46e5; color: #fff; border: none;
+      border-radius: 8px; padding: 9px 14px; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .card-move:active { transform: scale(0.95); }
+    .card-move-title { font-size: 12px; font-weight: 800; color: #4f46e5; white-space: nowrap; }
+
     @keyframes counterPop {
       0% { transform: scale(1); }
       40% { transform: scale(1.35); color: var(--ht-navy); }
@@ -768,7 +777,13 @@
         `; }).join('');
 
         con.innerHTML += `
-          <div class="slide"><div class="card">
+          <div class="slide"><div class="slide-inner">
+            <div class="card-move-bar">
+              <button class="card-move" onclick="moveCardOrder('credit', ${idx}, -1)"><i class="fas fa-arrow-left"></i> 앞으로</button>
+              <span class="card-move-title"><i class="fas fa-arrows-left-right"></i> 카드 순서</span>
+              <button class="card-move" onclick="moveCardOrder('credit', ${idx}, 1)">뒤로 <i class="fas fa-arrow-right"></i></button>
+            </div>
+            <div class="card">
             <div class="card-header">
               <button class="card-del" onclick="removeCard(${idx})"><i class="fas fa-trash"></i></button>
               <div class="header-split">
@@ -819,7 +834,7 @@
               <span class="badge-pass" id="cardBadge_${idx}">🎉 실적달성</span>
               <span class="footer-val c-cred" id="cardSum_${idx}">0원</span>
             </div>
-          </div></div>
+          </div></div></div>
         `;
       });
       buildSwipeNav('credit');
@@ -833,7 +848,13 @@
       con.innerHTML = '';
       appData.loans.forEach((l, idx) => {
         con.innerHTML += `
-          <div class="slide"><div class="card">
+          <div class="slide"><div class="slide-inner">
+            <div class="card-move-bar">
+              <button class="card-move" onclick="moveCardOrder('loan', ${idx}, -1)"><i class="fas fa-arrow-left"></i> 앞으로</button>
+              <span class="card-move-title"><i class="fas fa-arrows-left-right"></i> 대출 순서</span>
+              <button class="card-move" onclick="moveCardOrder('loan', ${idx}, 1)">뒤로 <i class="fas fa-arrow-right"></i></button>
+            </div>
+            <div class="card">
             <div class="card-header" style="padding: 16px 20px; white-space:nowrap;">
               <button class="card-del" onclick="removeLoan(${idx})"><i class="fas fa-trash"></i></button>
               <div class="title-row-wrap">
@@ -863,7 +884,7 @@
               </div>
             </div>
             <div class="card-footer"><span class="footer-label">월 예상 납입금</span><span class="footer-val c-loan" id="loanSum_${idx}">0원</span></div>
-          </div></div>
+          </div></div></div>
         `;
       });
       buildSwipeNav('loan');
@@ -895,7 +916,13 @@
         `).join('');
 
         con.innerHTML += `
-          <div class="slide"><div class="card">
+          <div class="slide"><div class="slide-inner">
+            <div class="card-move-bar">
+              <button class="card-move" onclick="moveCardOrder('cash', ${idx}, -1)"><i class="fas fa-arrow-left"></i> 앞으로</button>
+              <span class="card-move-title"><i class="fas fa-arrows-left-right"></i> 그룹 순서</span>
+              <button class="card-move" onclick="moveCardOrder('cash', ${idx}, 1)">뒤로 <i class="fas fa-arrow-right"></i></button>
+            </div>
+            <div class="card">
             <div class="card-header" style="padding: 16px 20px;">
               <button class="card-del" onclick="removeCashGroup(${idx})"><i class="fas fa-trash"></i></button>
               <div class="title-row-wrap">
@@ -913,7 +940,7 @@
               <button class="btn-add-item" onclick="addCashItem(${idx})"><i class="fas fa-plus"></i> 항목 추가</button>
             </div>
             <div class="card-footer"><span class="footer-label">합계</span><span class="footer-val c-cash" id="cashSum_${idx}">0원</span></div>
-          </div></div>
+          </div></div></div>
         `;
       });
       buildSwipeNav('cash');
@@ -952,6 +979,19 @@
       appData.cards.splice(ci, 1);
       renderCards(); applyEditState(); calculateAll();
       goToSlide('credit', Math.max(0, ci - 1));
+    }
+
+    // 카드/대출/현금그룹 자체의 순서 이동
+    function moveCardOrder(section, idx, dir) {
+      const arr = section === 'credit' ? appData.cards : (section === 'loan' ? appData.loans : appData.cashGroups);
+      const ni = idx + dir;
+      if (ni < 0 || ni >= arr.length) { showToast(dir < 0 ? '이미 맨 앞입니다.' : '이미 맨 뒤입니다.'); return; }
+      const t = arr[idx]; arr[idx] = arr[ni]; arr[ni] = t;
+      if (section === 'credit') renderCards();
+      else if (section === 'loan') renderLoans();
+      else renderCash();
+      applyEditState(); calculateAll();
+      goToSlide(section, ni);
     }
 
     function addLoan() {
