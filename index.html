@@ -133,7 +133,7 @@
     .btn-benefit { background: linear-gradient(135deg, #7c3aed, #4f46e5); }
 
     /* ===== 카드 혜택 조회 모달 (바텀시트) ===== */
-    .benefit-modal { position: fixed; inset: 0; z-index: 3000; background: rgba(11,25,44,0.55); backdrop-filter: blur(3px); display: none; align-items: flex-end; justify-content: center; }
+    .benefit-modal { position: fixed; inset: 0; z-index: 3000; background: rgba(11,25,44,0.55); backdrop-filter: blur(3px); display: none; align-items: flex-end; justify-content: center; overscroll-behavior: contain; touch-action: none; }
     .benefit-modal.show { display: flex; }
     .benefit-box { background: #fff; width: 100%; max-width: 480px; max-height: 84vh; border-radius: 22px 22px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -10px 40px rgba(0,0,0,0.35); animation: sheetUp 0.28s cubic-bezier(0.22,1,0.36,1); }
     @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -143,7 +143,8 @@
     .benefit-search { display: flex; gap: 8px; padding: 14px 16px; border-bottom: 1px solid #eee; flex-shrink: 0; }
     .benefit-search input { flex: 1; min-width: 0; border: 1px solid #E5E7EB; border-radius: 10px; padding: 11px 12px; font-size: 14px; }
     .benefit-search button { background: var(--ht-navy); color: #fff; border: none; border-radius: 10px; padding: 0 16px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-    .benefit-result { padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+    .benefit-result { padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; overscroll-behavior: contain; touch-action: pan-y; }
+    body.modal-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
     .benefit-text { white-space: pre-wrap; font-size: 13.5px; line-height: 1.65; color: #1f2937; }
     .benefit-hint { color: #9CA3AF; font-size: 13px; text-align: center; line-height: 1.6; padding: 24px 8px; }
     .benefit-loading { text-align: center; padding: 28px 0; color: var(--ht-navy); font-weight: 700; }
@@ -1373,13 +1374,20 @@
     }
 
     /* ===== 카드 혜택 조회 ===== */
+    let _benefitScrollY = 0;
     function openBenefit() {
+      _benefitScrollY = window.scrollY || window.pageYOffset || 0;
+      document.body.style.top = (-_benefitScrollY) + 'px';
+      document.body.classList.add('modal-open');   // 배경 스크롤 잠금
       const m = document.getElementById('benefitModal');
       m.classList.add('show');
       setTimeout(() => { const q = document.getElementById('benefitQuery'); if (q) q.focus(); }, 120);
     }
     function closeBenefit() {
       document.getElementById('benefitModal').classList.remove('show');
+      document.body.classList.remove('modal-open');
+      document.body.style.top = '';
+      window.scrollTo(0, _benefitScrollY);          // 원래 위치로 복원
     }
     function searchBenefit() {
       const q = document.getElementById('benefitQuery').value.trim();
