@@ -130,6 +130,25 @@
     #app-container.edit-on .edit-banner b { color: #FDE68A; }
     .card.editing { border: 2.5px solid #6366F1 !important; }
     .btn-capture { background: #64748B; }
+    .btn-benefit { background: linear-gradient(135deg, #7c3aed, #4f46e5); }
+
+    /* ===== 카드 혜택 조회 모달 (바텀시트) ===== */
+    .benefit-modal { position: fixed; inset: 0; z-index: 3000; background: rgba(11,25,44,0.55); backdrop-filter: blur(3px); display: none; align-items: flex-end; justify-content: center; }
+    .benefit-modal.show { display: flex; }
+    .benefit-box { background: #fff; width: 100%; max-width: 480px; max-height: 84vh; border-radius: 22px 22px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -10px 40px rgba(0,0,0,0.35); animation: sheetUp 0.28s cubic-bezier(0.22,1,0.36,1); }
+    @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .benefit-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; background: linear-gradient(135deg, var(--ht-navy), #13233d); color: #fff; font-weight: 800; font-size: 16px; flex-shrink: 0; }
+    .benefit-head i { color: var(--ht-gold); }
+    .benefit-close { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 14px; }
+    .benefit-search { display: flex; gap: 8px; padding: 14px 16px; border-bottom: 1px solid #eee; flex-shrink: 0; }
+    .benefit-search input { flex: 1; min-width: 0; border: 1px solid #E5E7EB; border-radius: 10px; padding: 11px 12px; font-size: 14px; }
+    .benefit-search button { background: var(--ht-navy); color: #fff; border: none; border-radius: 10px; padding: 0 16px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .benefit-result { padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+    .benefit-text { white-space: pre-wrap; font-size: 13.5px; line-height: 1.65; color: #1f2937; }
+    .benefit-hint { color: #9CA3AF; font-size: 13px; text-align: center; line-height: 1.6; padding: 24px 8px; }
+    .benefit-loading { text-align: center; padding: 28px 0; color: var(--ht-navy); font-weight: 700; }
+    .benefit-loading .loader { margin: 0 auto 12px; }
+    .benefit-disclaimer { font-size: 11px; color: #9CA3AF; padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)); text-align: center; border-top: 1px solid #f3f4f6; flex-shrink: 0; }
     .btn-save { background: var(--ht-gold); color: var(--ht-navy); }
     .btn-logout { background: #EF4444; color: white; }
 
@@ -487,6 +506,7 @@
       <div class="bottom-actions">
         <div class="btn-group">
           <button class="btn-common btn-edit" onclick="toggleEditMode()" id="btnEdit"><i class="fas fa-pen"></i> 수정</button>
+          <button class="btn-common btn-benefit" onclick="openBenefit()"><i class="fas fa-gift"></i> 카드혜택</button>
           <button class="btn-common btn-capture" onclick="captureScreen()" id="btnCapture"><i class="fas fa-camera"></i> 캡쳐</button>
           <button class="btn-common btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 로그아웃</button>
         </div>
@@ -495,6 +515,23 @@
   </div>
 
   <div id="toast"></div>
+
+  <div id="benefitModal" class="benefit-modal" onclick="if(event.target===this) closeBenefit()">
+    <div class="benefit-box">
+      <div class="benefit-head">
+        <span><i class="fas fa-gift"></i> 카드 혜택 조회</span>
+        <button class="benefit-close" onclick="closeBenefit()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="benefit-search">
+        <input type="text" id="benefitQuery" placeholder="카드 이름 입력 (예: 삼성 taptap)" onkeyup="if(event.keyCode===13) searchBenefit()">
+        <button onclick="searchBenefit()"><i class="fas fa-search"></i> 조회</button>
+      </div>
+      <div id="benefitResult" class="benefit-result">
+        <div class="benefit-hint">카드 이름을 입력하고 <b>조회</b>를 누르세요.</div>
+      </div>
+      <div class="benefit-disclaimer">※ AI(제미나이)가 생성한 정보로 실제 카드 혜택과 다를 수 있습니다. 정확한 내용은 카드사에서 확인하세요.</div>
+    </div>
+  </div>
 
   <script>
     /* ============================================================
@@ -1326,6 +1363,35 @@
         .catch(() => {
           showToast('<i class="fas fa-exclamation-circle"></i> 저장 실패', true);
         });
+    }
+
+    /* ===== 카드 혜택 조회 ===== */
+    function openBenefit() {
+      const m = document.getElementById('benefitModal');
+      m.classList.add('show');
+      setTimeout(() => { const q = document.getElementById('benefitQuery'); if (q) q.focus(); }, 120);
+    }
+    function closeBenefit() {
+      document.getElementById('benefitModal').classList.remove('show');
+    }
+    function searchBenefit() {
+      const q = document.getElementById('benefitQuery').value.trim();
+      if (!q) { showToast('카드 이름을 입력하세요.', true); return; }
+      const box = document.getElementById('benefitResult');
+      box.innerHTML = '<div class="benefit-loading"><span class="loader"></span><p>제미나이가 혜택을 조회 중입니다...</p></div>';
+      apiGet('cardBenefit', { query: q }).then(res => {
+        if (res && res.success) {
+          const d = document.createElement('div');
+          d.className = 'benefit-text';
+          d.innerText = res.text;   // AI 응답은 텍스트로만 삽입(안전)
+          box.innerHTML = '';
+          box.appendChild(d);
+        } else {
+          box.innerHTML = '<div class="benefit-hint">조회 실패: ' + ((res && res.message) || '오류가 발생했습니다.') + '</div>';
+        }
+      }).catch(() => {
+        box.innerHTML = '<div class="benefit-hint">서버 연결에 실패했습니다.</div>';
+      });
     }
 
     function captureScreen() {
