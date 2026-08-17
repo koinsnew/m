@@ -84,30 +84,32 @@
     .btn-login:disabled { opacity: 0.7; cursor: not-allowed; }
 
     /* 메인 앱 컨테이너 */
-    #app-container { display: none; padding-bottom: 60px; }
+    #app-container { display: none; padding-bottom: 96px; }
+    #app-container.edit-on { padding-bottom: 138px; }
 
-    /* --- Header --- */
-    .header-bar {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(10px);
+    /* --- 상단 문구 헤더 --- */
+    .top-header {
+      background: linear-gradient(135deg, var(--ht-navy) 0%, #13233d 100%);
       position: sticky; top: 0; z-index: 100;
-      padding: 10px 12px;
-      display: flex; align-items: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      padding: 14px 16px; text-align: center;
+      box-shadow: 0 4px 10px -1px rgba(0, 0, 0, 0.18);
     }
-    .header-bar::-webkit-scrollbar { display: none; }
-
-    /* 상단 타이틀은 화면에서는 숨김(캡쳐 이미지에서만 노출) */
-    .app-brand {
-      display: none;
-      font-size: 18px; font-weight: 900; color: var(--ht-navy);
-      align-items: center; gap: 6px; white-space: nowrap;
+    .app-motto {
+      font-size: 16px; font-weight: 900; color: #fff; letter-spacing: -0.3px;
+      display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
     }
-    .app-brand i { color: var(--ht-gold); }
+    .app-motto i { color: var(--ht-gold); }
 
+    /* --- 하단 고정 버튼 바 --- */
+    .bottom-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 200; }
+    .bottom-actions {
+      background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(10px);
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    }
     .btn-group { display: flex; width: 100%; gap: 8px; justify-content: space-between; }
     .btn-common {
-      flex: 1; border: none; padding: 12px 6px; border-radius: 16px;
+      flex: 1; border: none; padding: 13px 6px; border-radius: 14px;
       font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.1s; color: white;
       white-space: nowrap;
@@ -116,15 +118,14 @@
     .btn-common:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-edit { background: var(--ht-navy); } .btn-edit.active { background: #EC4899; box-shadow: 0 0 0 3px rgba(236,72,153,0.35), 0 4px 12px rgba(236,72,153,0.4); }
 
-    /* ===== 편집 모드 표시 ===== */
+    /* ===== 편집 모드 표시 (하단 버튼 위 고정) ===== */
     .edit-banner { display: none; }
     #app-container.edit-on { background: #F1F0FF; }
     #app-container.edit-on .edit-banner {
       display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center;
-      position: sticky; top: 58px; z-index: 90;
       background: linear-gradient(90deg, #4f46e5, #7c3aed); color: #fff;
-      font-size: 12.5px; font-weight: 700; line-height: 1.35;
-      padding: 11px 16px; box-shadow: 0 6px 14px rgba(79,70,229,0.35);
+      font-size: 13px; font-weight: 700; line-height: 1.35;
+      padding: 10px 16px; box-shadow: 0 -2px 10px rgba(79,70,229,0.25);
     }
     #app-container.edit-on .edit-banner b { color: #FDE68A; }
     .card.editing { border: 2.5px solid #6366F1 !important; }
@@ -405,20 +406,9 @@
 
   <div id="app-container">
     <div id="headerArea">
-      <div class="header-bar">
-        <div class="app-brand"><i class="fas fa-gem"></i> 스마트 지출</div>
-        <div class="btn-group">
-          <button class="btn-common btn-edit" onclick="toggleEditMode()" id="btnEdit"><i class="fas fa-pen"></i> 수정</button>
-          <button class="btn-common btn-capture" onclick="captureScreen()" id="btnCapture"><i class="fas fa-camera"></i> 캡쳐</button>
-          <button class="btn-common btn-save" onclick="saveData()"><i class="fas fa-cloud-upload-alt"></i> 저장</button>
-          <button class="btn-common btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 로그아웃</button>
-        </div>
+      <div class="top-header">
+        <span class="app-motto"><i class="fas fa-coins"></i> 지출통제는 재테크의 시작이다</span>
       </div>
-    </div>
-
-    <div id="editBanner" class="edit-banner">
-      <i class="fas fa-pen-ruler"></i>
-      <span>편집 모드 - 끝나면 상단 <b>완료</b>를 누르세요</span>
     </div>
 
     <div class="dashboard-container" id="captureArea">
@@ -486,6 +476,21 @@
       <div class="swipe-foot">
         <div class="swipe-dots" id="dots_cash"></div>
         <div class="swipe-counter" id="counter_cash">1 / 1</div>
+      </div>
+    </div>
+
+    <div class="bottom-dock">
+      <div id="editBanner" class="edit-banner">
+        <i class="fas fa-pen-ruler"></i>
+        <span>편집 모드 · 끝나면 <b>완료</b>를 누르세요</span>
+      </div>
+      <div class="bottom-actions">
+        <div class="btn-group">
+          <button class="btn-common btn-edit" onclick="toggleEditMode()" id="btnEdit"><i class="fas fa-pen"></i> 수정</button>
+          <button class="btn-common btn-capture" onclick="captureScreen()" id="btnCapture"><i class="fas fa-camera"></i> 캡쳐</button>
+          <button class="btn-common btn-save" onclick="saveData()"><i class="fas fa-cloud-upload-alt"></i> 저장</button>
+          <button class="btn-common btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 로그아웃</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1339,15 +1344,6 @@
 
       const headerClone = header.cloneNode(true);
       const dashboardClone = dashboard.cloneNode(true);
-
-      const btns = headerClone.querySelector('.btn-group');
-      if (btns) btns.style.display = 'none';
-
-      // 캡쳐 이미지에는 타이틀을 다시 표시(가운데 정렬)
-      const bar = headerClone.querySelector('.header-bar');
-      if (bar) bar.style.justifyContent = 'center';
-      const brand = headerClone.querySelector('.app-brand');
-      if (brand) brand.style.display = 'flex';
 
       container.appendChild(headerClone);
       container.appendChild(dashboardClone);
