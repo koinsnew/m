@@ -488,7 +488,6 @@
         <div class="btn-group">
           <button class="btn-common btn-edit" onclick="toggleEditMode()" id="btnEdit"><i class="fas fa-pen"></i> 수정</button>
           <button class="btn-common btn-capture" onclick="captureScreen()" id="btnCapture"><i class="fas fa-camera"></i> 캡쳐</button>
-          <button class="btn-common btn-save" onclick="saveData()"><i class="fas fa-cloud-upload-alt"></i> 저장</button>
           <button class="btn-common btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 로그아웃</button>
         </div>
       </div>
@@ -724,7 +723,12 @@
       }
     }
 
-    function toggleEditMode() { isEditMode = !isEditMode; applyEditState(); }
+    function toggleEditMode() {
+      const wasEditing = isEditMode;
+      isEditMode = !isEditMode;
+      applyEditState();
+      if (wasEditing && !isEditMode) saveData();   // 완료를 누르면 자동 저장
+    }
     function ensureEdit() { if (!isEditMode) { isEditMode = true; } }
 
     function renderAll() {
@@ -1315,16 +1319,11 @@
     function saveData() {
       if (!currentUser) { showToast('로그인이 필요합니다.', true); return; }
 
-      const btn = document.querySelector('.btn-save'); const origin = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> 저장 중'; btn.disabled = true;
-
       apiPost({ action: 'save', username: currentUser, data: JSON.stringify(appData) })
         .then(() => {
-          btn.innerHTML = origin; btn.disabled = false;
           showToast('<i class="fas fa-check-circle"></i> 저장 완료!');
         })
         .catch(() => {
-          btn.innerHTML = origin; btn.disabled = false;
           showToast('<i class="fas fa-exclamation-circle"></i> 저장 실패', true);
         });
     }
