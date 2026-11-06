@@ -725,6 +725,27 @@
     .perf-line { margin-top: 6px; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
     .perf-line b { color: var(--ink); }
     .perf-ex { color: #64748B; }
+    .cat-head { all: unset; box-sizing: border-box; display: block; width: 100%; cursor: pointer; border-radius: 8px; }
+    .cat-head:focus-visible { outline: 3px solid #1E40AF; outline-offset: 2px; }
+    .cat-chev { font-size: 11px; color: #94A3B8; margin-right: 7px; transition: transform 0.2s; }
+    .cat-row.open .cat-chev { transform: rotate(180deg); }
+    .cat-track { display: flex; }
+    .cat-seg { height: 100%; transition: width 0.5s cubic-bezier(0.22,1,0.36,1); }
+    .cat-seg + .cat-seg { box-shadow: -1.5px 0 0 #fff; }
+    .cat-seg:first-child { border-radius: 3px 0 0 3px; } .cat-seg:last-child { border-radius: 0 3px 3px 0; } .cat-seg:only-child { border-radius: 3px; }
+    .cat-split { margin-top: 5px; font-size: 12px; color: var(--ink-3); font-weight: 500; }
+    .cat-legend { display: flex; gap: 14px; justify-content: flex-end; font-size: 12px; font-weight: 600; color: var(--ink-3); padding: 2px 0 4px; }
+    .cat-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .cd-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .cat-detail { margin-top: 10px; background: #F8FAFC; border-radius: 10px; padding: 4px 12px; }
+    .cd-list { list-style: none; margin: 0; padding: 0; }
+    .cd-list li { display: flex; align-items: center; gap: 9px; padding: 9px 0; border-bottom: 1px solid #E2E8F0; }
+    .cd-list li:last-child { border-bottom: none; }
+    .cd-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .cd-label { font-size: 13.5px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cd-sub { font-size: 12px; color: #64748B; }
+    .cd-amt { font-size: 13.5px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+    .cd-empty { padding: 12px 0; font-size: 13px; color: #64748B; text-align: center; }
   </style>
 </head>
 <body>
@@ -2122,11 +2143,13 @@
 
       // 고정지출 합계 합산
       const agg = { card: 0, loan: 0, cash: 0, discount: 0, savings: 0, cats: {} };
+      const byWho = {};   // 분류 → { 사용자: 금액 }
+      const addWho = (k, u, v) => { if (!v) return; (byWho[k] = byWho[k] || {})[u] = (byWho[k][u] || 0) + v; };
       members.forEach(m => {
         const s = summaryOf(m);
         agg.card += s.card || 0; agg.loan += s.loan || 0; agg.cash += s.cash || 0;
         agg.discount += s.discount || 0; agg.savings += s.savings || 0;
-        Object.keys(s.cats || {}).forEach(k => { agg.cats[k] = (agg.cats[k] || 0) + (s.cats[k] || 0); });
+        Object.keys(s.cats || {}).forEach(k => { agg.cats[k] = (agg.cats[k] || 0) + (s.cats[k] || 0); addWho(k, m.username, s.cats[k] || 0); });
       });
       delete agg.cats['저축'];
 
@@ -2136,7 +2159,7 @@
       viewed.forEach(e => {
         if (e.type === 'income') income += e.amount;
         else if (e.category === '저축') entrySave += e.amount;
-        else { entrySpend += e.amount; agg.cats[e.category] = (agg.cats[e.category] || 0) + e.amount; }
+        else { entrySpend += e.amount; agg.cats[e.category] = (agg.cats[e.category] || 0) + e.amount; addWho(e.category, e.owner, e.amount); }
       });
 
       // 지출 = 카드(할인 후) + 대출 상환 + 현금 + 이달 기록 − 저축 / 남은 돈 = 수입 − 지출 − 저축
@@ -2183,6 +2206,7 @@
       renderTabs(multi);
       renderFamilyFixed();
       $('noGroupCard').hidden = !!group;
+      catCtx = { byWho: byWho, members: members, entries: viewed.filter(e => e.type !== 'income' && e.category !== '저축') };
       renderCatBars(agg.cats, agg.discount, spend);
       renderFeed(viewed);
       hideIcons(document);
@@ -2211,6 +2235,66 @@
 
     let feedLimit = 15;
     let catLimit = 6;
+    let catCtx = { byWho: {}, members: [], entries: [] };
+    const catOpen = new Set();
+    function whoLabel(u) { if (me && u === me.username) return '나'; const m = memberList().find(x => x.username === u); return m ? m.name : u; }
+    function loanPmt(l) {
+      const P = l.principal || 0, r = (l.rate || 0) / 100 / 12, n = (l.term || 1) * 12;
+      if (P <= 0) return 0;
+      if (l.method === 'interest_only') return Math.round(P * r);
+      if (l.method === 'principal_equal') return Math.round(P / n + P * r);
+      return Math.round(r === 0 ? P / n : (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1));
+    }
+    // 고정지출 원장에서 분류별 세부 항목 뽑기
+    function fixedDetails(D) {
+      const out = [];
+      if (!D) return out;
+      (D.cards || []).forEach(c => (c.items || []).forEach(it => {
+        const a = it.amount || 0; if (a <= 0) return;
+        const cat = (it.category && it.category.trim()) ? it.category.trim() : '기타(카드)';
+        out.push({ cat: cat, label: (it.name || '이름 없음') + ' · ' + (c.name || '카드'), amt: a, kind: '카드' });
+      }));
+      (D.loans || []).forEach(l => { const a = loanPmt(l); if (a > 0) out.push({ cat: '대출', label: (l.name || '대출') + (l.type ? ' · ' + l.type : ''), amt: a, kind: '대출' }); });
+      (D.cashGroups || []).forEach((g, i) => {
+        const gname = g.name && g.name.trim() !== '' ? g.name : `그룹 ${i + 1}`;
+        (g.items || []).forEach(it => { const a = it.amount || 0; if (a > 0) out.push({ cat: gname, label: (it.name || gname) + (it.bank ? ' · ' + it.bank : ''), amt: a, kind: '현금' }); });
+      });
+      return out;
+    }
+    function catDetailRows(cat) {
+      const rows = [];
+      catCtx.members.forEach(m => {
+        const mine = me && m.username === me.username;
+        const D = mine ? appData : otherData(m.username);
+        const want = (catCtx.byWho[cat] || {})[m.username] || 0;
+        let got = 0;
+        if (D) fixedDetails(D).filter(x => x.cat === cat).forEach(x => { got += x.amt; rows.push({ u: m.username, label: x.label, sub: '고정 · ' + x.kind, amt: x.amt }); });
+        const ent = catCtx.entries.filter(e => e.owner === m.username && e.category === cat);
+        ent.forEach(e => { got += e.amount; rows.push({ u: m.username, label: e.memo || e.category, sub: shortDate(new Date(e.date + 'T00:00:00').getTime()) + ' 기록', amt: e.amount }); });
+        const rest = want - got;
+        if (rest > 0) rows.push({ u: m.username, label: '고정지출', sub: '세부 항목 미공유', amt: rest });
+      });
+      return rows.sort((a, b) => b.amt - a.amt);
+    }
+    function toggleCat(i, cat) {
+      const row = document.getElementById('catRow_' + i); if (!row) return;
+      const open = !row.classList.contains('open');
+      if (open) catOpen.add(cat); else catOpen.delete(cat);
+      row.classList.toggle('open', open);
+      row.querySelector('.cat-head').setAttribute('aria-expanded', open);
+      const box = row.querySelector('.cat-detail');
+      if (open && !box.dataset.done) { box.innerHTML = catDetailHtml(cat); box.dataset.done = '1'; }
+      box.hidden = !open;
+    }
+    function catDetailHtml(cat) {
+      const rows = catDetailRows(cat);
+      if (!rows.length) return '<div class="cd-empty">세부 내역이 없어요.</div>';
+      const multi = catCtx.members.length > 1;
+      return '<ul class="cd-list">' + rows.map(r => `<li>
+          ${multi ? `<span class="cd-dot" style="background:${memberColor(r.u)}" aria-hidden="true"></span>` : ''}
+          <span class="cd-main"><span class="cd-label">${esc(r.label)}</span><span class="cd-sub">${multi ? esc(whoLabel(r.u)) + ' · ' : ''}${esc(r.sub)}</span></span>
+          <span class="cd-amt">${num(r.amt)}</span></li>`).join('') + '</ul>';
+    }
     function renderCatBars(cats, discount, spend) {
       const box = $('catBars');
       const list = Object.keys(cats).filter(k => cats[k] > 0).map(k => ({ k: k, v: cats[k] })).sort((a, b) => b.v - a.v);
@@ -2218,15 +2302,31 @@
       if (!list.length) { box.innerHTML = '<div class="cat-empty">아직 이번 달 지출이 없어요.</div>'; return; }
       const gross = list.reduce((a, b) => a + b.v, 0);
       const max = list[0].v;
-      let html = list.slice(0, catLimit).map(x => `
-        <div class="cat-row">
-          <div class="cat-top"><span class="cat-name">${esc(x.k)}</span><span class="cat-val">${num(x.v)}<small>${(x.v / gross * 100).toFixed(0)}%</small></span></div>
-          <div class="cat-track" aria-hidden="true"><div class="cat-fill" style="width:${(x.v / max * 100).toFixed(1)}%"></div></div>
-        </div>`).join('');
+      const stacked = catCtx.members.length > 1;
+      const order = catCtx.members.map(m => m.username).sort((a, b) => (me && a === me.username ? -1 : me && b === me.username ? 1 : 0));
+      let html = '';
+      if (stacked) html += '<div class="cat-legend">' + order.map(u => `<span><i class="cd-dot" style="background:${memberColor(u)}" aria-hidden="true"></i>${esc(whoLabel(u))}</span>`).join('') + '</div>';
+      html += list.slice(0, catLimit).map((x, i) => {
+        const who = catCtx.byWho[x.k] || {};
+        const open = catOpen.has(x.k);
+        const fill = stacked
+          ? order.filter(u => who[u] > 0).map(u => `<div class="cat-seg" style="width:${(who[u] / max * 100).toFixed(2)}%;background:${memberColor(u)}"></div>`).join('')
+          : `<div class="cat-fill" style="width:${(x.v / max * 100).toFixed(1)}%"></div>`;
+        const split = stacked ? order.filter(u => who[u] > 0).map(u => `${esc(whoLabel(u))} ${num(who[u])}`).join(' · ') : '';
+        return `
+        <div class="cat-row${open ? ' open' : ''}${stacked ? ' stacked' : ''}" id="catRow_${i}">
+          <button type="button" class="cat-head" aria-expanded="${open}" aria-controls="catDetail_${i}" onclick="toggleCat(${i}, ${esc(JSON.stringify(x.k))})">
+            <div class="cat-top"><span class="cat-name"><i class="fas fa-chevron-down cat-chev"></i>${esc(x.k)}</span><span class="cat-val">${num(x.v)}<small>${(x.v / gross * 100).toFixed(0)}%</small></span></div>
+            <div class="cat-track" aria-hidden="true">${fill}</div>
+            ${split ? `<div class="cat-split">${split}</div>` : ''}
+          </button>
+          <div class="cat-detail" id="catDetail_${i}" ${open ? 'data-done="1"' : 'hidden'}>${open ? catDetailHtml(x.k) : ''}</div>
+        </div>`; }).join('');
       if (list.length > catLimit) html += `<button class="cat-more" onclick="catLimit = 99; renderHousehold()">나머지 ${list.length - catLimit}개 더 보기</button>`;
       if (discount > 0) html += `<div class="cat-row minus"><div class="cat-top"><span class="cat-name">카드 할인</span><span class="cat-val">−${num(discount)}</span></div></div>`;
       html += `<div class="cat-row total"><span>합계 = 지출</span><span>${won(spend)}</span></div>`;
       box.innerHTML = html;
+      hideIcons(box);
     }
     function num(n) { return Math.round(n).toLocaleString('ko-KR'); }
     function shortDate(ms) { if (!ms) return '-'; const d = new Date(Number(ms)); return (d.getMonth() + 1) + '/' + d.getDate(); }
