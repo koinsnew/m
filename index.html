@@ -693,6 +693,21 @@
     .login-logo p { color: rgba(255,255,255,0.75); }
 
     @media (min-width: 600px) { body { background: #E5E7EB; } #app-container { background: var(--bg-color); box-shadow: 0 0 0 1px rgba(0,0,0,0.04); } }
+
+    /* 가족 고정지출 합계 / 구성원 탭 */
+    .fam-fixed { margin: 8px 16px 12px; background: var(--ht-navy); color: #fff; border-radius: 18px; padding: 16px 16px 14px; }
+    .ff-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .ff-top h3 { font-size: 14px; font-weight: 700; color: #D1D5DB; }
+    .ff-top b { font-family: 'Roboto Mono', monospace; font-size: 24px; font-weight: 700; letter-spacing: -1px; white-space: nowrap; }
+    .ff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.15); }
+    .ff-grid span { display: block; font-size: 12px; color: #D1D5DB; font-weight: 600; }
+    .ff-grid b { display: block; font-family: 'Roboto Mono', monospace; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ff-members { margin: 10px 0 0; font-size: 12.5px; color: #E5E7EB; line-height: 1.5; }
+    .fixed-tabs { padding: 4px 16px 0 !important; margin-bottom: 4px; }
+    .fixed-tabs .fam-tab { flex: 0 0 auto; }
+    .login-auto { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 4px 2px 0; color: rgba(255,255,255,0.85); font-size: 14.5px; font-weight: 600; cursor: pointer; user-select: none; }
+    .login-auto input { width: 22px; height: 22px; accent-color: var(--ht-gold); margin: 0; cursor: pointer; }
+    .sum-note { white-space: nowrap; font-size: clamp(10.5px, 3.05vw, 12px); letter-spacing: -0.3px; }
   </style>
 </head>
 <body>
@@ -712,6 +727,7 @@
         <i class="fas fa-lock"></i>
         <input type="password" id="loginPw" class="login-input" placeholder="비밀번호 입력" autocomplete="current-password" onkeyup="if(event.keyCode===13) executeLogin()">
       </div>
+      <label class="login-auto"><input type="checkbox" id="autoLogin" checked> 자동 로그인</label>
       <button class="btn-login" id="btnLogin" onclick="executeLogin()">로그인</button>
       <p class="login-error" id="loginError" role="alert"></p>
     </div>
@@ -726,7 +742,6 @@
     <header class="app-bar" id="headerArea">
       <div class="ab-title">
         <span class="ab-name" id="abName">스마트 지출</span>
-        <span class="app-motto">지출통제는 재테크의 시작이다</span>
       </div>
       <div class="ab-actions" data-html2canvas-ignore="true">
         <button class="sync-chip" id="syncChip" onclick="syncNow({force:true})" title="지금 동기화"><span class="sync-dot" aria-hidden="true"></span><span id="syncText" aria-live="polite">연결 중…</span></button>
@@ -785,14 +800,23 @@
       <div class="fixed-head">
         <div>
           <h2>고정지출</h2>
-          <p class="fixed-sub" id="fixedSub">매달 나가는 카드·대출·현금</p>
-          <div class="fam-tabs" id="fixedTabs" role="tablist" aria-label="누구의 고정지출을 볼지" style="display:none; margin-top:10px; padding-bottom:0"></div>
+          <p class="fixed-sub" id="fixedSub" hidden></p>
         </div>
         <div class="fixed-actions">
           <button class="pill-btn" onclick="openBenefit()"><i class="fas fa-gift"></i> 카드혜택</button>
           <button class="pill-btn primary" id="btnEdit" onclick="toggleEditMode()"><i class="fas fa-pen"></i> 수정</button>
         </div>
       </div>
+      <section class="fam-fixed" id="famFixed" hidden aria-labelledby="famFixedTitle">
+        <div class="ff-top"><h3 id="famFixedTitle">가족 고정지출 합계</h3><b id="ffTotal">0원</b></div>
+        <div class="ff-grid">
+          <div><span>카드</span><b id="ffCard">0</b></div>
+          <div><span>대출</span><b id="ffLoan">0</b></div>
+          <div><span>현금</span><b id="ffCash">0</b></div>
+        </div>
+        <p class="ff-members" id="ffMembers"></p>
+      </section>
+      <div class="fam-tabs fixed-tabs" id="fixedTabs" role="tablist" aria-label="누구의 고정지출을 볼지" style="display:none"></div>
       <div class="fixed-empty" id="fixedEmpty" hidden></div>
       <div class="fixed-sum" aria-label="고정지출 합계">
         <div><span>카드(할인 후)</span><b id="fsCard">0원</b></div>
@@ -947,8 +971,17 @@
     /* ---- 통신 계층 ----
        모든 요청은 POST(JSON) + 로그인 토큰. 응답은 CORS 로 직접 읽는다. */
     let token = null;
-    function storeToken(t) { try { if (t) localStorage.setItem('ss_token', t); else localStorage.removeItem('ss_token'); } catch (e) {} }
-    function loadStoredToken() { try { return localStorage.getItem('ss_token') || null; } catch (e) { return null; } }
+    // 자동 로그인: 체크하면 기기에 보관(앱을 껐다 켜도 유지), 아니면 이번 실행 동안만 유지
+    function storeToken(t, remember) {
+      try { localStorage.removeItem('ss_token'); } catch (e) {}
+      try { sessionStorage.removeItem('ss_token'); } catch (e) {}
+      if (!t) return;
+      try { (remember ? localStorage : sessionStorage).setItem('ss_token', t); } catch (e) {}
+    }
+    function loadStoredToken() {
+      try { const t = localStorage.getItem('ss_token'); if (t) return t; } catch (e) {}
+      try { return sessionStorage.getItem('ss_token') || null; } catch (e) { return null; }
+    }
 
     function apiCall(action, payload, timeoutMs) {
       const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
@@ -1016,7 +1049,8 @@
       apiCall('login', { username: id, password: pw })
         .then(res => {
           if (res && res.success && res.token) {
-            token = res.token; storeToken(token);
+            token = res.token; storeToken(token, $('autoLogin').checked);
+            try { localStorage.setItem('ss_auto', $('autoLogin').checked ? '1' : '0'); } catch (e) {}
             $('loginPw').value = '';
             startSession(res.name);
           } else {
@@ -1120,6 +1154,7 @@
         w.querySelector('.swipe-arrow.right').setAttribute('aria-label', '다음 ' + nm[k]);
       });
       hideIcons(document);
+      try { if (localStorage.getItem('ss_auto') === '0') $('autoLogin').checked = false; } catch (e) {}
       const t = loadStoredToken();
       if (t) { token = t; startSession(null); }
     };
@@ -2095,7 +2130,7 @@
       $('sumSpend').textContent = num(spend);
       $('sumSave').textContent = num(save);
 
-      const notes = ['지출 = 카드(할인 반영)·대출 상환·현금 고정지출 + 이달 기록'];
+      const notes = ['지출 = 카드(할인 반영)·대출·현금 고정지출 + 이달 기록'];
       if (viewYm !== curYm()) notes.push('지난달도 고정지출은 현재 설정 금액으로 계산돼요');
       if (other && otherM) {
         notes.push(otherM.summary
@@ -2105,6 +2140,7 @@
       $('sumNote').innerHTML = notes.join('<br>');
 
       renderTabs(multi);
+      renderFamilyFixed();
       $('noGroupCard').hidden = !!group;
       renderCatBars(agg.cats, agg.discount, spend);
       renderFeed(viewed);
@@ -2165,6 +2201,22 @@
       try { appData = { cards: [], loans: [], cashGroups: [] }; normalizeData(typeof m.data === 'string' ? JSON.parse(m.data) : m.data); return appData; }
       catch (e) { return null; } finally { appData = keep; }
     }
+    function renderFamilyFixed() {
+      const box = $('famFixed'); if (!box) return;
+      const list = memberList();
+      if (!group || list.length < 2) { box.hidden = true; return; }
+      box.hidden = false;
+      let c = 0, l = 0, k = 0; const parts = [];
+      list.forEach(m => {
+        const s = summaryOf(m);
+        const t = (s.card || 0) + (s.loan || 0) + (s.cash || 0);
+        c += s.card || 0; l += s.loan || 0; k += s.cash || 0;
+        parts.push(`${esc(me && m.username === me.username ? '나' : m.name)} ${num(t)}원`);
+      });
+      $('ffTotal').textContent = won(c + l + k);
+      $('ffCard').textContent = num(c); $('ffLoan').textContent = num(l); $('ffCash').textContent = num(k);
+      $('ffMembers').innerHTML = parts.join(' · ');
+    }
     function renderFixedTabs() {
       const box = $('fixedTabs'); if (!box) return;
       const list = memberList();
@@ -2184,7 +2236,8 @@
       const m = other ? memberList().find(x => x.username === fixedOwner) : null;
       const D = other ? otherData(fixedOwner) : appData;
       document.body.classList.toggle('fixed-other', other);
-      $('fixedSub').textContent = other ? `${m.name}님 고정지출 · 보기 전용` : '매달 나가는 카드·대출·현금';
+      $('fixedSub').hidden = !other;
+      $('fixedSub').textContent = other ? `${m.name}님 고정지출 · 보기 전용` : '';
       const empty = other && !D;
       $('fixedEmpty').hidden = !empty;
       if (empty) $('fixedEmpty').textContent = `${m.name}님이 아직 고정지출을 입력하지 않았어요.`;
