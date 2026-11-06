@@ -587,6 +587,9 @@
     .link-btn { margin-top: 10px; min-height: 44px; border: none; background: none; padding: 0; color: var(--ink-2); font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 
     /* 고정지출 화면 */
+    .fixed-head > div:first-child { min-width: 0; }
+    body.fixed-other .btn-add-card, body.fixed-other .btn-add-item, body.fixed-other #btnEdit { display: none !important; }
+    .fixed-empty { margin: 0 16px 24px; padding: 28px 16px; text-align: center; background: #fff; border-radius: 16px; color: var(--ink-3); font-size: 14px; line-height: 1.6; }
     .fixed-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 18px 16px 6px; }
     .fixed-head h2 { font-size: 20px; font-weight: 900; color: var(--ink); }
     .fixed-sub { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-3); }
@@ -782,13 +785,15 @@
       <div class="fixed-head">
         <div>
           <h2>고정지출</h2>
-          <p class="fixed-sub">상세 내역은 나만 볼 수 있어요</p>
+          <p class="fixed-sub" id="fixedSub">매달 나가는 카드·대출·현금</p>
+          <div class="fam-tabs" id="fixedTabs" role="tablist" aria-label="누구의 고정지출을 볼지" style="display:none; margin-top:10px; padding-bottom:0"></div>
         </div>
         <div class="fixed-actions">
           <button class="pill-btn" onclick="openBenefit()"><i class="fas fa-gift"></i> 카드혜택</button>
           <button class="pill-btn primary" id="btnEdit" onclick="toggleEditMode()"><i class="fas fa-pen"></i> 수정</button>
         </div>
       </div>
+      <div class="fixed-empty" id="fixedEmpty" hidden></div>
       <div class="fixed-sum" aria-label="고정지출 합계">
         <div><span>카드(할인 후)</span><b id="fsCard">0원</b></div>
         <div><span>대출 상환</span><b id="fsLoan">0원</b></div>
@@ -1037,7 +1042,7 @@
       token = null; storeToken(null);
       me = null; group = null; entries = []; syncRev = ''; dataRev = ''; hasSynced = false;
       isEditMode = false; viewTab = 'all'; editSnapshot = null; catLimit = 6;
-      currentView = ''; showView('home');
+      currentView = ''; fixedOwner = 'me'; domOwner = 'me'; document.body.classList.remove('fixed-other'); showView('home');
       document.body.classList.remove('has-fab', 'edit-active', 'view-other');
       initEmptyData(); renderAll();
       sheetStack.slice().forEach(closeSheet);
@@ -1204,6 +1209,7 @@
       const wasEditing = isEditMode;
       if (!wasEditing) {
         if (currentView !== 'fixed') showView('fixed');
+        if (fixedOwner !== 'me') { fixedOwner = 'me'; renderFixed(); }
         editSnapshot = JSON.stringify(appData);
       }
       isEditMode = !isEditMode;
@@ -1228,6 +1234,7 @@
     function ensureEdit() { if (!isEditMode) toggleEditMode(); }
 
     function renderAll() {
+      if (domOwner !== 'me') { calculateAll(); renderFixedTabs(); return; }
       renderCards(); renderLoans(); renderCash();
       applyEditState();
       calculateAll();
@@ -1237,10 +1244,10 @@
     /* ============================================================
        렌더 — 신용카드
        ============================================================ */
-    function renderCards() {
+    function renderCards(D = appData) {
       const con = document.getElementById('creditContainer');
       con.innerHTML = '';
-      appData.cards.forEach((c, idx) => {
+      D.cards.forEach((c, idx) => {
         let perfSum = 0;
         c.items.forEach(item => { if (!item.excluded) perfSum += (item.amount || 0); });
 
@@ -1349,10 +1356,10 @@
     /* ============================================================
        렌더 — 대출
        ============================================================ */
-    function renderLoans() {
+    function renderLoans(D = appData) {
       const con = document.getElementById('loanContainer');
       con.innerHTML = '';
-      appData.loans.forEach((l, idx) => {
+      D.loans.forEach((l, idx) => {
         con.innerHTML += `
           <div class="slide"><div class="slide-inner">
             <div class="card-move-bar">
@@ -1399,10 +1406,10 @@
     /* ============================================================
        렌더 — 현금 지출
        ============================================================ */
-    function renderCash() {
+    function renderCash(D = appData) {
       const con = document.getElementById('cashContainer');
       con.innerHTML = '';
-      appData.cashGroups.forEach((g, idx) => {
+      D.cashGroups.forEach((g, idx) => {
         let itemsHtml = g.items.map((item, iIdx) => `
           <div class="cash-item">
             <div class="cash-top-row">
@@ -1697,12 +1704,15 @@
       window.requestAnimationFrame(step);
     }
 
-    function calculateAll() {
+    function calculateAll(D = appData) {
+      const mine = D === appData;
+      const dom = mine === (domOwner === 'me');
+      const gid = id => dom ? document.getElementById(id) : null;
       let tCardNet = 0, tLoan = 0, tCash = 0, tDiscount = 0;
       let spendAgg = {};   // 카드+현금 합산 카테고리별 지출(전체 지출 상세)
       let totalSavings = 0;
 
-      appData.cards.forEach((c, i) => {
+      D.cards.forEach((c, i) => {
         let rawSum = 0;
         let perfSum = 0;
         c.items.forEach(item => {
@@ -1719,16 +1729,16 @@
         });
         const discountAmt = c.discountAmount || 0;
         const netSum = Math.max(0, rawSum - discountAmt);
-        const cardSumEl = document.getElementById(`cardSum_${i}`);
+        const cardSumEl = gid(`cardSum_${i}`);
         if (cardSumEl) cardSumEl.innerText = fmt(netSum);
 
-        const badge = document.getElementById(`cardBadge_${i}`);
+        const badge = gid(`cardBadge_${i}`);
         let percent = 0;
         if (c.threshold > 0) percent = Math.min(100, (perfSum / c.threshold) * 100);
 
-        const progBar = document.getElementById(`progBar_${i}`);
-        const progPer = document.getElementById(`progPer_${i}`);
-        const progRemain = document.getElementById(`progRemain_${i}`);
+        const progBar = gid(`progBar_${i}`);
+        const progPer = gid(`progPer_${i}`);
+        const progRemain = gid(`progRemain_${i}`);
 
         if (progBar && progPer && progRemain) {
           progBar.style.width = percent + '%';
@@ -1753,11 +1763,11 @@
         tCardNet += netSum; tDiscount += Math.min(discountAmt, rawSum);
       });
 
-      appData.loans.forEach((l, i) => {
+      D.loans.forEach((l, i) => {
         let pmt = 0; const P = l.principal || 0, r = (l.rate || 0) / 100 / 12, n = (l.term || 1) * 12;
         if (P > 0) { if (l.method === 'interest_only') pmt = P * r; else if (l.method === 'principal_equal') pmt = (P / n) + (P * r); else pmt = r === 0 ? P / n : (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1); }
         l.payment = Math.round(pmt);
-        const loanSumEl = document.getElementById(`loanSum_${i}`);
+        const loanSumEl = gid(`loanSum_${i}`);
         if (loanSumEl) loanSumEl.innerText = fmt(l.payment);
         tLoan += l.payment;
 
@@ -1774,13 +1784,13 @@
           else if (l.method === 'amortization' && r > 0) { const top = Math.pow(1 + r, n) - Math.pow(1 + r, monthsPassed); const bot = Math.pow(1 + r, n) - 1; balance = P * (top / bot); }
           else if (l.method === 'amortization' && r === 0) balance = P - ((P / n) * monthsPassed);
         }
-        const loanBalEl = document.getElementById(`loanBal_${i}`);
+        const loanBalEl = gid(`loanBal_${i}`);
         if (loanBalEl) loanBalEl.innerText = fmt(Math.max(0, balance));
       });
 
-      appData.cashGroups.forEach((g, i) => {
+      D.cashGroups.forEach((g, i) => {
         const s = g.items.reduce((a, b) => a + (b.amount || 0), 0);
-        const cashSumEl = document.getElementById(`cashSum_${i}`);
+        const cashSumEl = gid(`cashSum_${i}`);
         if (cashSumEl) cashSumEl.innerText = fmt(s);
         tCash += s;
 
@@ -1791,7 +1801,8 @@
         }
       });
 
-      if ($('fsCard')) { $('fsCard').textContent = fmt(tCardNet); $('fsLoan').textContent = fmt(tLoan); $('fsCash').textContent = fmt(tCash); }
+      if (dom && $('fsCard')) { $('fsCard').textContent = fmt(tCardNet); $('fsLoan').textContent = fmt(tLoan); $('fsCash').textContent = fmt(tCash); }
+      if (!mine) return;
       mySummary = { card: tCardNet, loan: tLoan, cash: tCash, discount: tDiscount, savings: totalSavings, cats: spendAgg };
       renderHousehold();
     }
@@ -1965,6 +1976,7 @@
             ensureViewTab();
             renderHousehold();
             if (res.dataRev && res.dataRev !== dataRev && !isEditMode) reloadOwnData();
+            if (currentView === 'fixed' && fixedOwner !== 'me' && !isEditMode) renderFixed(); else renderFixedTabs();
           }
           setSyncState('ok');
         })
@@ -2032,7 +2044,7 @@
       const names = viewedUsernames();
       const members = memberList().filter(m => names.indexOf(m.username) >= 0);
 
-      // 고정지출(각자 합계만 공유) 합산
+      // 고정지출 합계 합산
       const agg = { card: 0, loan: 0, cash: 0, discount: 0, savings: 0, cats: {} };
       members.forEach(m => {
         const s = summaryOf(m);
@@ -2058,10 +2070,9 @@
 
       const other = viewTab !== 'all' && viewTab !== 'me';
       const otherM = other ? memberList().find(x => x.username === viewTab) : null;
-      const who = viewTab === 'all' ? (group ? '우리집' : '나') : (viewTab === 'me' ? '나' : (otherM ? otherM.name : ''));
+      const who = viewTab === 'all' ? (group ? (group.name || '우리집') : '나') : (viewTab === 'me' ? '나' : (otherM ? otherM.name : ''));
       const mon = Number(viewYm.split('-')[1]);
 
-      $('abName').textContent = group ? (group.name || '우리집') : '스마트 지출';
       $('monthLabel').textContent = ymLabel(viewYm);
       $('btnNextMonth').disabled = viewYm >= curYm();
       $('heroLabel').textContent = `${mon}월 · ${who}`;
@@ -2088,7 +2099,7 @@
       if (viewYm !== curYm()) notes.push('지난달도 고정지출은 현재 설정 금액으로 계산돼요');
       if (other && otherM) {
         notes.push(otherM.summary
-          ? `${esc(otherM.name)}님 고정지출은 합계만 공유돼요 · ${shortDate(otherM.summaryAt)} 기준`
+          ? `${esc(otherM.name)}님 고정지출 ${shortDate(otherM.summaryAt)} 기준 · 고정지출 메뉴에서 자세히 볼 수 있어요`
           : `${esc(otherM.name)}님은 아직 고정지출을 공유하지 않았어요`);
       }
       $('sumNote').innerHTML = notes.join('<br>');
@@ -2145,6 +2156,46 @@
     function hideIcons(root) { (root || document).querySelectorAll('i.fas, i.far, i.fab').forEach(i => i.setAttribute('aria-hidden', 'true')); }
     function scrollBehavior() { try { return matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'; } catch (e) { return 'smooth'; } }
 
+    /* ===== 고정지출: 가족 구성원 보기 (수정은 본인만) ===== */
+    let fixedOwner = 'me', domOwner = 'me';
+    function otherData(u) {
+      const m = memberList().find(x => x.username === u);
+      if (!m || !m.data) return null;
+      const keep = appData;
+      try { appData = { cards: [], loans: [], cashGroups: [] }; normalizeData(typeof m.data === 'string' ? JSON.parse(m.data) : m.data); return appData; }
+      catch (e) { return null; } finally { appData = keep; }
+    }
+    function renderFixedTabs() {
+      const box = $('fixedTabs'); if (!box) return;
+      const list = memberList();
+      if (!group || list.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+      box.style.display = 'flex';
+      const tabs = [{ key: 'me', label: '나', color: memberColor(me.username) }].concat(list.filter(m => m.username !== me.username).map(m => ({ key: m.username, label: m.name, color: memberColor(m.username) })));
+      box.innerHTML = tabs.map(t => `<button class="fam-tab" role="tab" aria-selected="${fixedOwner === t.key}" tabindex="${fixedOwner === t.key ? 0 : -1}" data-key="${esc(t.key)}" onclick="setFixedOwner(this.dataset.key)"><span class="tab-dot" style="background:${t.color}" aria-hidden="true"></span>${esc(t.label)}</button>`).join('');
+    }
+    function setFixedOwner(u) {
+      if (isEditMode) { showToast('편집을 먼저 완료하거나 취소해주세요.', true); return; }
+      fixedOwner = u; renderFixed(); window.scrollTo(0, 0);
+    }
+    function renderFixed() {
+      if (fixedOwner !== 'me' && !memberList().some(m => m.username === fixedOwner)) fixedOwner = 'me';
+      renderFixedTabs();
+      const other = fixedOwner !== 'me';
+      const m = other ? memberList().find(x => x.username === fixedOwner) : null;
+      const D = other ? otherData(fixedOwner) : appData;
+      document.body.classList.toggle('fixed-other', other);
+      $('fixedSub').textContent = other ? `${m.name}님 고정지출 · 보기 전용` : '매달 나가는 카드·대출·현금';
+      const empty = other && !D;
+      $('fixedEmpty').hidden = !empty;
+      if (empty) $('fixedEmpty').textContent = `${m.name}님이 아직 고정지출을 입력하지 않았어요.`;
+      document.querySelectorAll('#fixedView .section-container, #fixedView .fixed-sum').forEach(el => { el.style.display = empty ? 'none' : ''; });
+      if (empty) return;
+      domOwner = other ? 'other' : 'me';
+      renderCards(D); renderLoans(D); renderCash(D);
+      applyEditState(); calculateAll(D);
+      hideIcons(document);
+    }
+
     /* ===== 화면 전환: 홈 / 고정지출 ===== */
     let currentView = 'home';
     function showView(v) {
@@ -2156,7 +2207,7 @@
       if (v === 'home') { $('navHome').setAttribute('aria-current', 'page'); $('navFixed').removeAttribute('aria-current'); }
       else { $('navFixed').setAttribute('aria-current', 'page'); $('navHome').removeAttribute('aria-current'); }
       window.scrollTo(0, 0);
-      if (v === 'fixed') { renderCards(); renderLoans(); renderCash(); applyEditState(); calculateAll(); hideIcons(document); }
+      if (v === 'fixed') renderFixed();
     }
 
     function renderFeed(list) {
@@ -2449,7 +2500,7 @@
               <div class="invite-code" aria-label="초대 코드 ${esc(group.inviteCode.split('').join(' '))}">${esc(group.inviteCode)}</div>
               <div class="sheet-row" style="margin-top:0"><button class="btn-ghost" onclick="copyInvite()"><i class="far fa-copy"></i> 복사</button><button class="btn-primary" onclick="shareInvite()"><i class="fas fa-share-nodes"></i> 공유</button></div>
             </div>
-            <p class="sheet-hint">배우자가 로그인한 뒤 홈의 <b>초대 코드</b> 칸에 입력하면 됩니다. 배우자 계정은 관리자가 먼저 만들어야 해요.</p>
+            <p class="sheet-hint">배우자가 로그인한 뒤 홈의 <b>초대 코드</b> 칸에 입력하면 됩니다. 배우자 계정은 관리자가 먼저 만들어야 해요. 같은 그룹이면 서로의 고정지출도 볼 수 있어요(수정은 본인만).</p>
             <div class="sheet-row"><button class="btn-ghost" style="color:#B91C1C; border-color:#FCA5A5" onclick="leaveGroup()">그룹 나가기</button></div>
           </div>
           ${account}`;
