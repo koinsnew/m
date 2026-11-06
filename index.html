@@ -718,6 +718,13 @@
     .login-auto { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 4px 2px 0; color: rgba(255,255,255,0.85); font-size: 14.5px; font-weight: 600; cursor: pointer; user-select: none; }
     .login-auto input { width: 22px; height: 22px; accent-color: var(--ht-gold); margin: 0; cursor: pointer; }
     .sum-note { white-space: nowrap; font-size: clamp(10.5px, 3.05vw, 12px); letter-spacing: -0.3px; }
+    .card-items { display: flex; flex-direction: column; gap: 12px; }
+    .card:not(.editing) .card-items:not(.open) .fold-item { display: none; }
+    .card.editing .btn-fold { display: none; }
+    .btn-fold { width: 100%; min-height: 44px; margin: 0; border: 1.5px solid #C9D3E6; border-radius: 12px; background: #EEF2F9; color: #1E3A8A; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .perf-line { margin-top: 6px; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+    .perf-line b { color: var(--ink); }
+    .perf-ex { color: #64748B; }
   </style>
 </head>
 <body>
@@ -1200,7 +1207,7 @@
         if (!Array.isArray(c.items)) c.items = [];
         if (typeof c.discountAmount === 'undefined') c.discountAmount = 0;
         if (typeof c.threshold === 'undefined') c.threshold = 0;
-        c.items.forEach(it => { if (typeof it.excluded === 'undefined') it.excluded = false; if (typeof it.category === 'undefined') it.category = ''; });
+        c.items.forEach(it => { it.excluded = (it.excluded === true || it.excluded === 'true' || it.excluded === 'TRUE' || it.excluded === 1); if (typeof it.category === 'undefined') it.category = ''; });
       });
       appData.loans.forEach(l => {
         if (typeof l.method === 'undefined') l.method = 'amortization';
@@ -1286,6 +1293,23 @@
       hideIcons(document);
     }
 
+    const CARD_FOLD = 4;          // 카드 내역이 이보다 많으면 접어서 보여줌
+    const cardOpen = new Set();   // 펼친 카드 번호
+    function toggleCardFold(i) {
+      const box = document.getElementById('cardItems_' + i), btn = document.getElementById('cardFold_' + i);
+      if (!box || !btn) return;
+      const open = !box.classList.contains('open');
+      box.classList.toggle('open', open);
+      if (open) cardOpen.add(i); else cardOpen.delete(i);
+      const n = box.querySelectorAll('.fold-item').length;
+      btn.setAttribute('aria-expanded', open);
+      btn.innerHTML = open ? '<i class="fas fa-chevron-up"></i> 접기' : '<i class="fas fa-chevron-down"></i> 더보기 · ' + n + '개 더';
+    }
+    function perfLineHtml(perf, th, ex) {
+      return '실적 반영 <b>' + perf.toLocaleString('ko-KR') + '원</b>' + (th > 0 ? ' / ' + Number(th).toLocaleString('ko-KR') + '원' : '') +
+        (ex > 0 ? ' <span class="perf-ex">· 실적 제외 ' + ex.toLocaleString('ko-KR') + '원</span>' : '');
+    }
+
     /* ============================================================
        렌더 — 신용카드
        ============================================================ */
@@ -1302,8 +1326,11 @@
         const progressColorClass = isPassed ? 'success' : '';
         const remainText = c.threshold > 0 ? (c.threshold - perfSum > 0 ? (c.threshold - perfSum).toLocaleString() + '원 남음' : '달성완료!') : '-';
 
+        const isOpen = cardOpen.has(idx);
+        const hiddenCnt = Math.max(0, c.items.length - CARD_FOLD);
+        let exSum = 0; c.items.forEach(it => { if (it.excluded) exSum += (it.amount || 0); });
         const itemsHtml = c.items.map((item, iIdx) => {
-          const excludedClass = item.excluded ? 'excluded' : '';
+          const excludedClass = (item.excluded ? 'excluded' : '') + (iIdx >= CARD_FOLD ? ' fold-item' : '');
           const checkedState = item.excluded ? 'checked' : '';
           return `
           <div class="input-group ${excludedClass}">
@@ -1375,7 +1402,8 @@
               </div>
             </div>
             <div class="card-body">
-              ${itemsHtml}
+              <div class="card-items ${isOpen ? 'open' : ''}" id="cardItems_${idx}">${itemsHtml}</div>
+              ${hiddenCnt > 0 ? `<button type="button" class="btn-fold" id="cardFold_${idx}" aria-expanded="${isOpen}" aria-controls="cardItems_${idx}" onclick="toggleCardFold(${idx})">${isOpen ? '<i class="fas fa-chevron-up"></i> 접기' : `<i class="fas fa-chevron-down"></i> 더보기 · ${hiddenCnt}개 더`}</button>` : ''}
               <button class="btn-add-item" onclick="addCardItem(${idx})"><i class="fas fa-plus"></i> 항목 추가</button>
               <div style="margin-top: 4px;">
                 <div class="progress-track">
@@ -1385,6 +1413,7 @@
                   <span id="progPer_${idx}">${percent.toFixed(0)}% 달성</span>
                   <span id="progRemain_${idx}">${remainText}</span>
                 </div>
+                <div class="perf-line" id="perfLine_${idx}">${perfLineHtml(perfSum, c.threshold, exSum)}</div>
               </div>
             </div>
             <div class="card-footer">
@@ -1759,11 +1788,11 @@
 
       D.cards.forEach((c, i) => {
         let rawSum = 0;
-        let perfSum = 0;
+        let perfSum = 0, exSum = 0;
         c.items.forEach(item => {
           const amt = item.amount || 0;
           rawSum += amt;
-          if (!item.excluded) perfSum += amt;
+          if (!item.excluded) perfSum += amt; else exSum += amt;
 
           // 카드 항목을 분류별로 합산(현금과 같은 분류면 합쳐짐)
           if (amt > 0) {
@@ -1777,6 +1806,8 @@
         const cardSumEl = gid(`cardSum_${i}`);
         if (cardSumEl) cardSumEl.innerText = fmt(netSum);
 
+        const perfLine = gid(`perfLine_${i}`);
+        if (perfLine) perfLine.innerHTML = perfLineHtml(perfSum, c.threshold || 0, exSum);
         const badge = gid(`cardBadge_${i}`);
         let percent = 0;
         if (c.threshold > 0) percent = Math.min(100, (perfSum / c.threshold) * 100);
