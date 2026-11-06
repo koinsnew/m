@@ -403,6 +403,97 @@
     #loading { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
     .loader { width: 48px; height: 48px; border: 5px solid #E5E7EB; border-bottom-color: var(--ht-navy); border-radius: 50%; animation: rotation 1s linear infinite; }
     @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* ===================== 가족(공동 가계) 화면 ===================== */
+    .fam-head { margin-bottom: 18px; }
+    .fam-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+    .sync-chip { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid #E5E7EB; background: #fff; color: #4B5563; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #10B981; flex-shrink: 0; }
+    .sync-chip.syncing .sync-dot { background: #F59E0B; animation: pulse 1s ease-in-out infinite; }
+    .sync-chip.error { color: #B91C1C; border-color: #FCA5A5; background: #FEF2F2; }
+    .sync-chip.error .sync-dot { background: #EF4444; }
+    @keyframes pulse { 50% { opacity: 0.3; } }
+    .fam-gear { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 18px; border: none; background: var(--ht-navy); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .fam-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+    .fam-tabs::-webkit-scrollbar { display: none; }
+    .fam-tab { flex: 0 0 auto; min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1.5px solid #D1D5DB; background: #fff; color: #374151; font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+    .fam-tab .tab-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .fam-tab[aria-selected="true"] { background: var(--ht-navy); border-color: var(--ht-navy); color: #fff; }
+    .month-bar { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 12px; }
+    .month-bar button { width: 44px; height: 44px; border-radius: 50%; border: none; background: transparent; color: var(--ht-navy); font-size: 15px; cursor: pointer; }
+    .month-bar button:disabled { opacity: 0.25; cursor: default; }
+    #monthLabel { min-width: 120px; text-align: center; font-size: 17px; font-weight: 800; color: var(--text-dark); }
+    .sum-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .tile { background: #fff; border-radius: 16px; padding: 12px 8px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06); min-width: 0; }
+    .tile span { display: block; font-size: 12px; font-weight: 700; color: #6B7280; margin-bottom: 4px; }
+    .tile b { display: block; font-family: 'Roboto Mono', monospace; font-size: 15px; font-weight: 800; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tile.income b { color: #2563EB; } .tile.spend b { color: #DC2626; } .tile.net b { color: #059669; } .tile.net b.neg { color: #DC2626; }
+    .sum-note { margin: 8px 4px 0; font-size: 11.5px; color: #6B7280; line-height: 1.5; text-align: center; }
+    .nogroup { margin-top: 14px; background: #fff; border-radius: 18px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); text-align: center; }
+    .nogroup h3 { margin: 0 0 6px; font-size: 16px; color: var(--ht-navy); }
+    .nogroup p { margin: 0 0 12px; font-size: 13px; color: #6B7280; line-height: 1.55; }
+    .btn-primary { min-height: 48px; padding: 0 22px; border: none; border-radius: 14px; background: var(--ht-navy); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; }
+    .btn-primary:disabled { opacity: 0.4; cursor: default; }
+    .btn-ghost { min-height: 48px; padding: 0 18px; border: 1.5px solid #D1D5DB; border-radius: 14px; background: #fff; color: #374151; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .btn-danger { min-height: 48px; padding: 0 18px; border: none; border-radius: 14px; background: #EF4444; color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; }
+
+    /* 최근 기록 */
+    .feed-list { padding: 0 20px; display: flex; flex-direction: column; gap: 8px; }
+    .feed-item { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 16px; padding: 12px 8px 12px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); min-height: 64px; }
+    .feed-item.pending { opacity: 0.55; }
+    .feed-av { width: 38px; height: 38px; border-radius: 50%; color: #fff; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .feed-main { flex: 1; min-width: 0; text-align: left; background: none; border: none; padding: 0; cursor: default; font-family: inherit; }
+    .feed-main.mine { cursor: pointer; }
+    .feed-title { font-size: 14.5px; font-weight: 700; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .feed-meta { font-size: 12px; color: #6B7280; margin-top: 2px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feed-amt { font-family: 'Roboto Mono', monospace; font-weight: 800; font-size: 14.5px; white-space: nowrap; }
+    .feed-amt.inc { color: #2563EB; } .feed-amt.exp { color: #DC2626; }
+    .feed-del { width: 44px; height: 44px; border: none; background: transparent; color: #9CA3AF; font-size: 15px; cursor: pointer; flex-shrink: 0; }
+    .feed-empty { text-align: center; color: #9CA3AF; font-size: 13.5px; line-height: 1.6; padding: 26px 12px; background: #fff; border-radius: 16px; }
+    .feed-more { align-self: center; margin-top: 4px; }
+    .other-note { margin: 0 20px 28px; padding: 16px; border-radius: 16px; background: #EEF2FF; color: #3730A3; font-size: 13.5px; line-height: 1.6; display: none; }
+    body.view-other .own-section, body.view-other #btnEdit { display: none; }
+    body.view-other .other-note { display: block; }
+
+    /* 빠른 입력 FAB */
+    .fab { position: fixed; right: 16px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); z-index: 190; width: 60px; height: 60px; border-radius: 50%; border: none; background: var(--ht-gold); color: var(--ht-navy); font-size: 24px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.28); display: none; align-items: center; justify-content: center; }
+    #app-container.ready ~ .fab, body.has-fab .fab { display: flex; }
+    body.edit-active .fab { display: none; }
+    .fab:active { transform: scale(0.94); }
+
+    /* 시트(공통) */
+    .sheet-body { padding: 16px 18px 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
+    .sheet-body label { display: block; font-size: 12.5px; font-weight: 700; color: #6B7280; margin: 14px 0 6px; }
+    .sheet-body input[type=text], .sheet-body input[type=date], .sheet-body input[type=tel] { width: 100%; min-height: 48px; border: 1.5px solid #E5E7EB; border-radius: 12px; padding: 0 14px; font-size: 16px; font-family: inherit; background: #fff; color: var(--text-dark); }
+    .sheet-body input:focus { border-color: var(--ht-navy); }
+    .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #F3F4F6; border-radius: 14px; padding: 4px; }
+    .seg button { min-height: 44px; border: none; border-radius: 11px; background: transparent; font-size: 15px; font-weight: 800; color: #6B7280; cursor: pointer; }
+    .seg button[aria-pressed="true"].exp { background: #FEE2E2; color: #B91C1C; }
+    .seg button[aria-pressed="true"].inc { background: #DBEAFE; color: #1D4ED8; }
+    .amt-input { width: 100%; border: none !important; border-bottom: 2px solid #E5E7EB !important; border-radius: 0 !important; font-family: 'Roboto Mono', monospace; font-size: 32px !important; font-weight: 800; text-align: right; padding: 8px 4px !important; min-height: 64px !important; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1.5px solid #D1D5DB; background: #fff; color: #374151; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .chip[aria-pressed="true"] { background: var(--ht-navy); border-color: var(--ht-navy); color: #fff; }
+    .chip.more { border-style: dashed; color: #6B7280; }
+    .sheet-row { display: flex; gap: 10px; margin-top: 18px; }
+    .sheet-row > * { flex: 1; }
+    .by-line { margin-top: 12px; font-size: 12.5px; color: #6B7280; }
+    .invite-box { margin-top: 6px; padding: 16px; border-radius: 16px; background: #F9FAFB; text-align: center; }
+    .invite-code { font-family: 'Roboto Mono', monospace; font-size: 30px; font-weight: 900; letter-spacing: 6px; color: var(--ht-navy); margin: 6px 0 12px; }
+    .member-list { list-style: none; margin: 6px 0 0; padding: 0; }
+    .member-list li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #F3F4F6; font-size: 15px; font-weight: 600; }
+    .sheet-hint { font-size: 12.5px; color: #6B7280; line-height: 1.55; margin: 8px 0 0; }
+    .cf-title { margin: 0 0 8px; font-size: 18px; font-weight: 800; color: var(--text-dark); }
+    .cf-msg { margin: 0 0 4px; font-size: 14px; color: #4B5563; line-height: 1.6; }
+
+    /* 토스트(되돌리기·재시도) */
+    #toast.actionable { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+    /* 접근성 */
+    button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 3px solid #2563EB; outline-offset: 2px; }
+    .swipe-arrow { position: absolute; }
+    .swipe-arrow::after { content: ''; position: absolute; inset: -10px; border-radius: 50%; }
+    @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }
   </style>
 </head>
 <body>
@@ -416,11 +507,11 @@
       </div>
       <div class="login-input-wrap">
         <i class="fas fa-user"></i>
-        <input type="text" id="loginId" class="login-input" placeholder="아이디 입력" autocomplete="off">
+        <input type="text" id="loginId" class="login-input" placeholder="아이디 입력" autocomplete="username" autocapitalize="none">
       </div>
       <div class="login-input-wrap">
         <i class="fas fa-lock"></i>
-        <input type="password" id="loginPw" class="login-input" placeholder="비밀번호 입력" onkeyup="if(event.keyCode===13) executeLogin()">
+        <input type="password" id="loginPw" class="login-input" placeholder="비밀번호 입력" autocomplete="current-password" onkeyup="if(event.keyCode===13) executeLogin()">
       </div>
       <button class="btn-login" id="btnLogin" onclick="executeLogin()">로그인</button>
     </div>
@@ -439,14 +530,32 @@
     </div>
 
     <div class="dashboard-container" id="captureArea">
-      <div class="total-card">
-        <div class="total-label">총 고정 지출 (할인 적용)</div>
-        <div class="total-amount" id="totalDisplay">0원</div>
-
-        <div class="net-spend-row">
-          <span class="net-label">순수 지출 (저축 제외) </span>
-          <span class="net-amount" id="realSpendDisplay">0원</span>
+      <div class="fam-head">
+        <div class="fam-top" data-html2canvas-ignore="true">
+          <button class="sync-chip" id="syncChip" onclick="syncNow({force:true})" aria-live="polite" aria-label="지금 동기화"><span class="sync-dot"></span><span id="syncText">연결 중…</span></button>
+          <button class="fam-gear" onclick="openFamily()" aria-label="가족 그룹 설정"><i class="fas fa-users"></i><span id="famGearText">가족</span></button>
         </div>
+        <div class="fam-tabs" id="famTabs" role="tablist" aria-label="보기 대상"></div>
+        <div class="month-bar">
+          <button onclick="shiftMonth(-1)" aria-label="이전 달"><i class="fas fa-chevron-left"></i></button>
+          <span id="monthLabel" aria-live="polite"></span>
+          <button id="btnNextMonth" onclick="shiftMonth(1)" aria-label="다음 달"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="sum-tiles">
+          <div class="tile income"><span>수입</span><b id="sumIncome">0원</b></div>
+          <div class="tile spend"><span>지출</span><b id="sumSpend">0원</b></div>
+          <div class="tile net"><span>순수익</span><b id="sumNet">0원</b></div>
+        </div>
+        <p class="sum-note">지출 = 고정지출(카드·대출·현금) + 이달 기록 · 저축은 제외</p>
+        <div class="nogroup" id="noGroupCard" style="display:none" data-html2canvas-ignore="true">
+          <h3>가족과 함께 쓰기</h3>
+          <p>가족 그룹을 만들면 부부가 각자 입력한 수입·지출이 한곳에 모여 보입니다.</p>
+          <button class="btn-primary" onclick="openFamily()">그룹 만들기 · 참여하기</button>
+        </div>
+      </div>
+      <div class="total-card">
+        <div class="total-label">총 지출 (할인 적용 · 저축 포함)</div>
+        <div class="total-amount" id="totalDisplay">0원</div>
 
         <div class="charts-row">
           <div id="pie-container" class="chart-box"></div>
@@ -455,8 +564,14 @@
       </div>
     </div>
 
+    <div class="section-container" id="feedSection">
+      <div class="section-header"><span class="sh-title"><i class="fas fa-receipt" style="color:#2563EB"></i> 최근 기록</span></div>
+      <div class="feed-list" id="feedList"></div>
+    </div>
+    <div class="other-note" id="otherNote"></div>
+
     <!-- 신용카드 -->
-    <div class="section-container">
+    <div class="section-container own-section">
       <div class="section-header">
         <span class="sh-title"><i class="far fa-credit-card" style="color:#4f46e5"></i> 신용카드</span>
         <button class="btn-add-card" onclick="addCard()"><i class="fas fa-plus"></i> 카드 추가</button>
@@ -473,7 +588,7 @@
     </div>
 
     <!-- 대출 관리 -->
-    <div class="section-container">
+    <div class="section-container own-section">
       <div class="section-header">
         <span class="sh-title"><i class="fas fa-university" style="color:#d97706"></i> 대출 관리</span>
         <button class="btn-add-card" onclick="addLoan()"><i class="fas fa-plus"></i> 대출 추가</button>
@@ -490,7 +605,7 @@
     </div>
 
     <!-- 현금 지출 -->
-    <div class="section-container">
+    <div class="section-container own-section">
       <div class="section-header">
         <span class="sh-title"><i class="fas fa-coins" style="color:#10b981"></i> 현금 지출</span>
         <button class="btn-add-card" onclick="addCashGroup()"><i class="fas fa-plus"></i> 그룹 추가</button>
@@ -524,11 +639,59 @@
 
   <div id="toast"></div>
 
-  <div id="benefitModal" class="benefit-modal" onclick="if(event.target===this) closeBenefit()">
+  <button class="fab" id="fab" onclick="openEntry()" aria-label="수입·지출 기록 추가"><i class="fas fa-plus"></i></button>
+
+  <div id="entrySheet" class="benefit-modal" role="dialog" aria-modal="true" aria-labelledby="entryTitle" onclick="if(event.target===this) closeSheet('entrySheet')">
+    <div class="benefit-box">
+      <div class="benefit-head"><span id="entryTitle"><i class="fas fa-pen-to-square"></i> 기록 추가</span><button class="benefit-close" onclick="closeSheet('entrySheet')" aria-label="닫기"><i class="fas fa-times"></i></button></div>
+      <div class="sheet-body">
+        <div class="seg" role="group" aria-label="구분">
+          <button class="exp" id="segExp" onclick="setEntryType('expense')" aria-pressed="true">지출</button>
+          <button class="inc" id="segInc" onclick="setEntryType('income')" aria-pressed="false">수입</button>
+        </div>
+        <label for="entAmount">금액 (원)</label>
+        <input type="text" inputmode="numeric" id="entAmount" class="amt-input" placeholder="0" autocomplete="off" oninput="onEntryAmount(this)">
+        <label>분류</label>
+        <div class="chips" id="entChips"></div>
+        <input type="text" id="entCatCustom" placeholder="분류 직접 입력" maxlength="30" style="display:none; margin-top:8px" oninput="onEntryCustom(this)">
+        <label for="entMemo">메모 (선택)</label>
+        <input type="text" id="entMemo" maxlength="100" placeholder="예: 마트 장보기">
+        <label for="entDate">날짜</label>
+        <input type="date" id="entDate">
+        <div class="by-line" id="entBy"></div>
+        <div class="sheet-row">
+          <button class="btn-danger" id="entDelete" style="display:none" onclick="deleteEntryFromSheet()">삭제</button>
+          <button class="btn-primary" id="entSubmit" onclick="submitEntry()" disabled>기록하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="familySheet" class="benefit-modal" role="dialog" aria-modal="true" aria-labelledby="famTitle" onclick="if(event.target===this) closeSheet('familySheet')">
+    <div class="benefit-box">
+      <div class="benefit-head"><span id="famTitle"><i class="fas fa-users"></i> 가족 그룹</span><button class="benefit-close" onclick="closeSheet('familySheet')" aria-label="닫기"><i class="fas fa-times"></i></button></div>
+      <div class="sheet-body" id="famBody"></div>
+    </div>
+  </div>
+
+  <div id="confirmSheet" class="benefit-modal" role="alertdialog" aria-modal="true" aria-labelledby="cfTitle" aria-describedby="cfMsg" onclick="if(event.target===this) dismissConfirm()">
+    <div class="benefit-box" style="border-radius:22px 22px 0 0">
+      <div class="sheet-body">
+        <h3 class="cf-title" id="cfTitle"></h3>
+        <p class="cf-msg" id="cfMsg"></p>
+        <div class="sheet-row">
+          <button class="btn-ghost" id="cfCancel" onclick="resolveConfirm(false)">취소</button>
+          <button class="btn-danger" id="cfOk" onclick="resolveConfirm(true)">확인</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="benefitModal" class="benefit-modal" role="dialog" aria-modal="true" aria-label="카드 혜택 조회" onclick="if(event.target===this) closeBenefit()">
     <div class="benefit-box">
       <div class="benefit-head">
         <span><i class="fas fa-gift"></i> 카드 혜택 조회</span>
-        <button class="benefit-close" onclick="closeBenefit()"><i class="fas fa-times"></i></button>
+        <button class="benefit-close" onclick="closeBenefit()" aria-label="닫기"><i class="fas fa-times"></i></button>
       </div>
       <div class="benefit-search">
         <input type="text" id="benefitQuery" placeholder="카드 이름 입력 (예: 삼성 taptap)" onkeyup="if(event.keyCode===13) searchBenefit()">
@@ -547,36 +710,33 @@
        ============================================================ */
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwtGztWg3l_ZCePZx8ZMecep2LnDYz_HSITU1k21sVBg83enu8xLiRjiJ2WGsDdWAn4/exec';
 
-    /* ---- 크로스 도메인 통신 계층 ----
-       읽기(login/load): JSONP (CORS 문제 없음)
-       쓰기(save): fetch POST (no-cors) */
-    function apiGet(action, params) {
-      return new Promise((resolve, reject) => {
-        const cbName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-        let script;
-        const timer = setTimeout(() => { cleanup(); reject(new Error('요청 시간 초과')); }, 20000);
-        function cleanup() {
-          clearTimeout(timer);
-          try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
-          if (script && script.parentNode) script.parentNode.removeChild(script);
-        }
-        window[cbName] = (data) => { cleanup(); resolve(data); };
-        const qs = new URLSearchParams(Object.assign({}, params, { action: action, callback: cbName }));
-        script = document.createElement('script');
-        script.src = SCRIPT_URL + '?' + qs.toString();
-        script.onerror = () => { cleanup(); reject(new Error('네트워크 오류')); };
-        document.head.appendChild(script);
-      });
-    }
+    /* ---- 통신 계층 ----
+       모든 요청은 POST(JSON) + 로그인 토큰. 응답은 CORS 로 직접 읽는다. */
+    let token = null;
+    function storeToken(t) { try { if (t) localStorage.setItem('ss_token', t); else localStorage.removeItem('ss_token'); } catch (e) {} }
+    function loadStoredToken() { try { return localStorage.getItem('ss_token') || null; } catch (e) { return null; } }
 
-    function apiPost(payload) {
-      // no-cors: 서버에는 정상 전달되지만 응답 본문은 읽을 수 없음(성공으로 간주)
+    function apiCall(action, payload, timeoutMs) {
+      const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      const timer = setTimeout(() => { if (ctrl) ctrl.abort(); }, timeoutMs || 20000);
+      const body = Object.assign({ action: action }, payload || {});
+      if (token && action !== 'login') body.token = token;
       return fetch(SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      });
+        body: JSON.stringify(body),
+        signal: ctrl ? ctrl.signal : undefined
+      }).then(r => r.json()).then(res => {
+        clearTimeout(timer);
+        if (res && res.code === 'AUTH' && action !== 'login') { handleAuthExpired(); }
+        if (res && res.code === 'OUTDATED') { showToast('화면이 업데이트되었습니다. 새로고침 해주세요.', true); }
+        return res || { success: false };
+      }).catch(err => { clearTimeout(timer); throw err; });
+    }
+
+    function handleAuthExpired() {
+      if (!token) return;
+      forceLogout('로그인이 만료되었습니다. 다시 로그인해주세요.');
     }
 
     /* ============================================================
@@ -601,93 +761,120 @@
 
     let appData = { cards: [], loans: [], cashGroups: [] };
     let isEditMode = false;
-    let currentUser = null;
 
     Highcharts.setOptions({ lang: { thousandsSep: ',' }, credits: { enabled: false } });
 
-    window.onload = function () { /* 로그인 대기 */ };
 
     /* ============================================================
-       로그인 / 로그아웃 / 데이터 로드
+       로그인 / 로그아웃 / 세션
        ============================================================ */
-    function executeLogin() {
-      const id = document.getElementById('loginId').value.trim();
-      const pw = document.getElementById('loginPw').value.trim();
-      const btn = document.getElementById('btnLogin');
+    function $(id) { return document.getElementById(id); }
 
+    function executeLogin() {
+      const id = $('loginId').value.trim();
+      const pw = $('loginPw').value.trim();
+      const btn = $('btnLogin');
       if (!id || !pw) { showToast('아이디와 비밀번호를 입력해주세요.', true); return; }
 
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로그인 중...';
       btn.disabled = true;
 
-      apiGet('login', { username: id, password: pw })
+      apiCall('login', { username: id, password: pw })
         .then(res => {
-          if (res && res.success) {
-            currentUser = res.username;
-            showToast(`환영합니다, ${res.name}님!`);
-            document.getElementById('login-screen').style.opacity = '0';
-            setTimeout(() => {
-              document.getElementById('login-screen').style.display = 'none';
-              document.getElementById('app-container').style.display = 'block';
-              loadDataForUser();
-            }, 500);
+          if (res && res.success && res.token) {
+            token = res.token; storeToken(token);
+            $('loginPw').value = '';
+            startSession(res.name);
           } else {
-            btn.innerHTML = '로그인';
-            btn.disabled = false;
+            btn.innerHTML = '로그인'; btn.disabled = false;
             showToast((res && res.message) ? res.message : '로그인에 실패했습니다.', true);
           }
         })
         .catch(() => {
-          btn.innerHTML = '로그인';
-          btn.disabled = false;
-          showToast('서버 연결에 실패했습니다. 배포 주소를 확인해주세요.', true);
+          btn.innerHTML = '로그인'; btn.disabled = false;
+          showToast('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.', true);
         });
+    }
+
+    function resetLoginUi() {
+      $('btnLogin').innerHTML = '로그인'; $('btnLogin').disabled = false;
+      $('loading').style.display = 'none';
+      const ls = $('login-screen'); ls.style.display = 'flex'; ls.style.opacity = '1';
+      $('app-container').style.display = 'none';
+    }
+
+    function clearSession() {
+      stopPolling();
+      token = null; storeToken(null);
+      me = null; group = null; entries = []; syncRev = ''; dataRev = ''; hasSynced = false;
+      isEditMode = false; viewTab = 'all';
+      document.body.classList.remove('has-fab', 'edit-active', 'view-other');
+      initEmptyData(); renderAll();
+      sheetStack.slice().forEach(closeSheet);
     }
 
     function logout() {
-      currentUser = null;
-      isEditMode = false;
-
-      document.getElementById('loginId').value = '';
-      document.getElementById('loginPw').value = '';
-      document.getElementById('btnLogin').innerHTML = '로그인';
-      document.getElementById('btnLogin').disabled = false;
-
-      initEmptyData();
-      renderAll();
-
-      document.getElementById('app-container').style.display = 'none';
-      const loginScreen = document.getElementById('login-screen');
-      loginScreen.style.display = 'flex';
-
-      setTimeout(() => {
-        loginScreen.style.opacity = '1';
-        showToast('안전하게 로그아웃 되었습니다.');
-      }, 50);
+      clearSession();
+      $('loginId').value = ''; $('loginPw').value = '';
+      resetLoginUi();
+      showToast('안전하게 로그아웃 되었습니다.');
+    }
+    function forceLogout(msg) {
+      clearSession(); resetLoginUi();
+      showToast(msg, true);
     }
 
-    function loadDataForUser() {
-      document.getElementById('loading').style.display = 'flex';
-      isEditMode = false;
-      initEmptyData();
-
-      apiGet('load', { username: currentUser })
+    /* 로그인 직후 / 저장된 토큰으로 자동 로그인 */
+    function startSession(name) {
+      $('loading').style.display = 'flex';
+      viewYm = curYm();
+      apiCall('sync', { ym: viewYm, withData: true, force: true })
         .then(res => {
-          const data = res ? res.data : null;
-          if (data) {
-            try {
-              const parsed = (typeof data === 'string') ? JSON.parse(data) : data;
-              normalizeData(parsed);
-            } catch (e) { console.error(e); }
+          if (!res || !res.success) {
+            if (!token) return;   // AUTH 처리 완료
+            $('loading').style.display = 'none';
+            clearSession(); resetLoginUi();
+            showToast((res && res.message) || '데이터를 불러오지 못했습니다.', true);
+            return;
           }
-          renderAll();
-          document.getElementById('loading').style.display = 'none';
+          enterApp(res, name);
         })
         .catch(() => {
-          renderAll();
-          document.getElementById('loading').style.display = 'none';
+          clearSession(); resetLoginUi();
+          showToast('서버 연결에 실패했습니다. 다시 로그인해주세요.', true);
         });
     }
+
+    function parseOwnData(dataStr) {
+      initEmptyData();
+      if (dataStr) {
+        try { normalizeData((typeof dataStr === 'string') ? JSON.parse(dataStr) : dataStr); } catch (e) { console.error(e); }
+      }
+    }
+
+    function enterApp(res, name) {
+      isEditMode = false;
+      applySync(res, true);
+      parseOwnData(res.data);
+      dataRev = res.dataRev || '';
+      $('login-screen').style.display = 'none';
+      $('app-container').style.display = 'block';
+      $('loading').style.display = 'none';
+      document.body.classList.add('has-fab');
+      renderAll();
+      setSyncState('ok');
+      startPolling();
+      const mm = memberList().find(x => x.username === me.username);
+      if (group && mm && !mm.summary) saveData(false, true);   // 가족에게 내 합계가 보이도록 최초 1회 공유
+      if (name) showToast(`환영합니다, ${name}님!`);
+    }
+
+    window.onload = function () {
+      document.querySelectorAll('.swipe-arrow.left').forEach(b => b.setAttribute('aria-label', '이전'));
+      document.querySelectorAll('.swipe-arrow.right').forEach(b => b.setAttribute('aria-label', '다음'));
+      const t = loadStoredToken();
+      if (t) { token = t; startSession(null); }
+    };
 
     /* ============================================================
        데이터 초기화 / 정규화
@@ -749,6 +936,7 @@
       const cards = document.querySelectorAll('#app-container .card');
       const inputs = document.querySelectorAll('#app-container input, #app-container select');
       document.getElementById('app-container').classList.toggle('edit-on', isEditMode);
+      document.body.classList.toggle('edit-active', isEditMode);
 
       if (isEditMode) {
         btn.innerHTML = '<i class="fas fa-check"></i> 완료';
@@ -1010,9 +1198,13 @@
       goToSlide('credit', ci);
     }
     function removeCardItem(ci, ii) {
-      appData.cards[ci].items.splice(ii, 1);
+      const removed = appData.cards[ci].items.splice(ii, 1)[0];
       renderCards(); applyEditState(); calculateAll();
       goToSlide('credit', ci);
+      showToast('항목을 삭제했어요 · 눌러서 되돌리기', false, { duration: 6000, action: () => {
+        appData.cards[ci] && appData.cards[ci].items.splice(ii, 0, removed);
+        renderCards(); applyEditState(); calculateAll(); goToSlide('credit', ci);
+      } });
     }
     function moveCardItem(ci, ii, dir) {
       const items = appData.cards[ci].items;
@@ -1030,9 +1222,16 @@
     }
     function removeCard(ci) {
       if (appData.cards.length <= 1) { showToast('카드는 최소 1개가 필요합니다.', true); return; }
-      appData.cards.splice(ci, 1);
-      renderCards(); applyEditState(); calculateAll();
-      goToSlide('credit', Math.max(0, ci - 1));
+      const nm = appData.cards[ci].name || '이름 없는 카드';
+      askConfirm({ title: '카드를 삭제할까요?', msg: `"${nm}"의 모든 내역이 함께 사라집니다.` }).then(ok => {
+        if (!ok) return;
+        const removed = appData.cards.splice(ci, 1)[0];
+        renderCards(); applyEditState(); calculateAll();
+        goToSlide('credit', Math.max(0, ci - 1));
+        showToast('카드를 삭제했어요 · 눌러서 되돌리기', false, { duration: 6000, action: () => {
+          appData.cards.splice(ci, 0, removed); renderCards(); applyEditState(); calculateAll(); goToSlide('credit', ci);
+        } });
+      });
     }
 
     // 카드/대출/현금그룹 자체의 순서 이동
@@ -1056,9 +1255,16 @@
     }
     function removeLoan(li) {
       if (appData.loans.length <= 1) { showToast('대출은 최소 1개가 필요합니다.', true); return; }
-      appData.loans.splice(li, 1);
-      renderLoans(); applyEditState(); calculateAll();
-      goToSlide('loan', Math.max(0, li - 1));
+      const nm = appData.loans[li].name || '이름 없는 대출';
+      askConfirm({ title: '대출을 삭제할까요?', msg: `"${nm}" 정보가 사라집니다.` }).then(ok => {
+        if (!ok) return;
+        const removed = appData.loans.splice(li, 1)[0];
+        renderLoans(); applyEditState(); calculateAll();
+        goToSlide('loan', Math.max(0, li - 1));
+        showToast('대출을 삭제했어요 · 눌러서 되돌리기', false, { duration: 6000, action: () => {
+          appData.loans.splice(li, 0, removed); renderLoans(); applyEditState(); calculateAll(); goToSlide('loan', li);
+        } });
+      });
     }
 
     function addCashItem(gi) {
@@ -1068,9 +1274,13 @@
       goToSlide('cash', gi);
     }
     function removeCashItem(gi, ii) {
-      appData.cashGroups[gi].items.splice(ii, 1);
+      const removed = appData.cashGroups[gi].items.splice(ii, 1)[0];
       renderCash(); applyEditState(); calculateAll();
       goToSlide('cash', gi);
+      showToast('항목을 삭제했어요 · 눌러서 되돌리기', false, { duration: 6000, action: () => {
+        appData.cashGroups[gi] && appData.cashGroups[gi].items.splice(ii, 0, removed);
+        renderCash(); applyEditState(); calculateAll(); goToSlide('cash', gi);
+      } });
     }
     function addCashGroup() {
       ensureEdit();
@@ -1080,9 +1290,16 @@
     }
     function removeCashGroup(gi) {
       if (appData.cashGroups.length <= 1) { showToast('그룹은 최소 1개가 필요합니다.', true); return; }
-      appData.cashGroups.splice(gi, 1);
-      renderCash(); applyEditState(); calculateAll();
-      goToSlide('cash', Math.max(0, gi - 1));
+      const nm = appData.cashGroups[gi].name || `그룹 ${gi + 1}`;
+      askConfirm({ title: '그룹을 삭제할까요?', msg: `"${nm}"의 모든 항목이 함께 사라집니다.` }).then(ok => {
+        if (!ok) return;
+        const removed = appData.cashGroups.splice(gi, 1)[0];
+        renderCash(); applyEditState(); calculateAll();
+        goToSlide('cash', Math.max(0, gi - 1));
+        showToast('그룹을 삭제했어요 · 눌러서 되돌리기', false, { duration: 6000, action: () => {
+          appData.cashGroups.splice(gi, 0, removed); renderCash(); applyEditState(); calculateAll(); goToSlide('cash', gi);
+        } });
+      });
     }
 
     /* ============================================================
@@ -1202,11 +1419,14 @@
     function animateValue(id, start, end, duration) {
       const obj = document.getElementById(id);
       if (!obj) return;
+      const from = (obj.dataset.v !== undefined) ? Number(obj.dataset.v) : start;
+      obj.dataset.v = end;
+      if (from === end) { obj.innerHTML = Math.round(end).toLocaleString('ko-KR') + '원'; return; }
       let startTimestamp = null;
       const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const val = Math.floor(progress * (end - start) + start);
+        const val = Math.round(progress * (end - from) + from);
         obj.innerHTML = val.toLocaleString('ko-KR') + '원';
         if (progress < 1) window.requestAnimationFrame(step);
       };
@@ -1307,26 +1527,18 @@
         }
       });
 
-      const grandTotal = tCardNet + tLoan + tCash;
-      const realSpend = grandTotal - totalSavings;
-
-      animateValue('totalDisplay', 0, grandTotal, 500);
-      animateValue('realSpendDisplay', 0, realSpend, 500);
-
-      const cashBreakdown = Object.keys(spendAgg)
-        .map(key => ({ name: key, y: spendAgg[key] }))
-        .sort((a, b) => b.y - a.y);
-      updateCharts(tCardNet, tLoan, tCash, tDiscount, cashBreakdown);
+      mySummary = { card: tCardNet, loan: tLoan, cash: tCash, discount: tDiscount, savings: totalSavings, cats: spendAgg };
+      renderHousehold();
     }
 
-    function updateCharts(c, l, k, d, cashData) {
+    function updateCharts(c, l, k, d, cashData, extra) {
       Highcharts.chart('pie-container', {
         chart: { type: 'pie', options3d: { enabled: true, alpha: 45, beta: 0 }, backgroundColor: 'transparent', spacing: [10, 10, 10, 10] },
         exporting: { enabled: false }, title: { text: null },
         tooltip: { followTouchMove: false, pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b> ({point.y:,.0f}원)' },
         plotOptions: { pie: { allowPointSelect: true, cursor: 'pointer', depth: 35, dataLabels: { enabled: true, allowOverlap: true, format: '<b>{point.name}</b><br>{point.y:,.0f}원', style: { fontSize: '12px', fontWeight: 'normal', textOverflow: 'clip' } } } },
         responsive: { rules: [{ condition: { maxWidth: 500 }, chartOptions: { plotOptions: { pie: { size: '60%', dataLabels: { distance: 10, style: { fontSize: '9px' } } } } } }] },
-        series: [{ name: '금액', data: [{ name: '카드', y: c, color: '#4f46e5' }, { name: '대출', y: l, color: '#f59e0b' }, { name: '현금', y: k, color: '#10b981' }, { name: '할인', y: d, color: '#8B5CF6', sliced: true, selected: true }] }]
+        series: [{ name: '금액', data: [{ name: '카드', y: c, color: '#4f46e5' }, { name: '대출', y: l, color: '#f59e0b' }, { name: '현금', y: k, color: '#10b981' }].concat(extra > 0 ? [{ name: '기록', y: extra, color: '#ec4899' }] : []).concat([{ name: '할인', y: d, color: '#8B5CF6', sliced: true, selected: true }]) }]
       });
 
       // 항목 수에 맞춰 높이를 늘려 가로 막대가 겹치지 않게
@@ -1354,47 +1566,58 @@
       });
     }
 
-    function showToast(message, isError = false) {
+    let toastTimer = null, toastAction = null;
+    function showToast(message, isError = false, opts) {
       const x = document.getElementById("toast");
-      x.innerHTML = message; x.className = "show";
-      if (isError) x.classList.add("error"); else x.classList.remove("error");
-      setTimeout(function () { x.className = x.className.replace("show", ""); }, 3000);
+      opts = opts || {};
+      toastAction = opts.action || null;
+      x.innerHTML = message;
+      x.className = 'show' + (isError ? ' error' : '') + (toastAction ? ' actionable' : '');
+      x.setAttribute('role', 'status'); x.setAttribute('aria-live', 'polite');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { x.classList.remove('show'); }, opts.duration || 3000);
+      x.onclick = function () {
+        if (!toastAction) return;
+        const f = toastAction; toastAction = null;
+        x.classList.remove('show'); f();
+      };
     }
 
-    function saveData() {
-      if (!currentUser) { showToast('로그인이 필요합니다.', true); return; }
-
-      apiPost({ action: 'save', username: currentUser, data: JSON.stringify(appData) })
-        .then(() => {
-          showToast('<i class="fas fa-check-circle"></i> 저장 완료!');
+    function saveData(force, silent) {
+      if (!token) { showToast('로그인이 필요합니다.', true); return Promise.resolve(); }
+      writesInFlight++;
+      return apiCall('saveData', { data: JSON.stringify(appData), summary: mySummary, baseRev: dataRev, force: force === true })
+        .then(res => {
+          writesInFlight--;
+          if (res && res.success) {
+            dataRev = res.dataRev || dataRev;
+            if (!silent) showToast('<i class="fas fa-check-circle"></i> 저장 완료!');
+            syncNow({ force: true });
+          } else if (res && res.conflict) {
+            askConfirm({ title: '다른 기기에서 먼저 수정됐어요', msg: '이 기기에서 수정한 내용으로 덮어쓸까요? 아니면 최신 내용을 불러올까요? (이 기기의 수정은 사라집니다)', ok: '내 내용으로 덮어쓰기', cancel: '최신 내용 불러오기', persistent: true })
+              .then(ok => { if (ok) saveData(true); else { dataRev = res.dataRev || dataRev; reloadOwnData(); } });
+          } else if (!silent) {
+            showToast('<i class="fas fa-exclamation-circle"></i> ' + ((res && res.message) || '저장 실패') + ' · 눌러서 다시 시도', true, { action: () => saveData(), duration: 8000 });
+          }
         })
         .catch(() => {
-          showToast('<i class="fas fa-exclamation-circle"></i> 저장 실패', true);
+          writesInFlight--;
+          if (!silent) showToast('<i class="fas fa-exclamation-circle"></i> 저장 실패 · 눌러서 다시 시도', true, { action: () => saveData(), duration: 8000 });
         });
     }
 
     /* ===== 카드 혜택 조회 ===== */
-    let _benefitScrollY = 0;
     function openBenefit() {
-      _benefitScrollY = window.scrollY || window.pageYOffset || 0;
-      document.body.style.top = (-_benefitScrollY) + 'px';
-      document.body.classList.add('modal-open');   // 배경 스크롤 잠금
-      const m = document.getElementById('benefitModal');
-      m.classList.add('show');
+      openSheet('benefitModal');
       setTimeout(() => { const q = document.getElementById('benefitQuery'); if (q) q.focus(); }, 120);
     }
-    function closeBenefit() {
-      document.getElementById('benefitModal').classList.remove('show');
-      document.body.classList.remove('modal-open');
-      document.body.style.top = '';
-      window.scrollTo(0, _benefitScrollY);          // 원래 위치로 복원
-    }
+    function closeBenefit() { closeSheet('benefitModal'); }
     function searchBenefit() {
       const q = document.getElementById('benefitQuery').value.trim();
       if (!q) { showToast('카드 이름을 입력하세요.', true); return; }
       const box = document.getElementById('benefitResult');
       box.innerHTML = '<div class="benefit-loading"><span class="loader"></span><p>제미나이가 혜택을 불러오는 중입니다</p><div class="dot-wave"><span></span><span></span><span></span></div></div>';
-      apiGet('cardBenefit', { query: q }).then(res => {
+      apiCall('cardBenefit', { query: q }, 45000).then(res => {
         if (res && res.success) {
           const d = document.createElement('div');
           d.className = 'benefit-text';
@@ -1440,6 +1663,493 @@
         document.body.removeChild(container); btn.innerHTML = origText;
         showToast('<i class="fas fa-times"></i> 캡쳐 실패', true);
       });
+    }
+
+
+    /* ============================================================
+       가족(공동 가계) 상태 / 동기화
+       ============================================================ */
+    let me = null, group = null, entries = [];
+    let syncRev = '', dataRev = '', hasSynced = false;
+    let viewYm = '', viewTab = 'all';
+    let mySummary = { card: 0, loan: 0, cash: 0, discount: 0, savings: 0, cats: {} };
+    let pollTimer = null, syncing = false, writesInFlight = 0, errCount = 0, lastSyncAt = 0;
+    const MEMBER_COLORS = ['#4f46e5', '#ec4899', '#0ea5e9', '#f59e0b', '#10b981', '#8b5cf6'];
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function curYm() { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
+    function todayLocal() { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function ymLabel(ym) { const p = ym.split('-'); return p[0] + '년 ' + Number(p[1]) + '월'; }
+    function won(n) { return Math.round(n).toLocaleString('ko-KR') + '원'; }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+    function memberList() {
+      if (group && group.members && group.members.length) return group.members;
+      return me ? [{ username: me.username, name: me.name, summary: null }] : [];
+    }
+    function memberColor(username) {
+      const i = memberList().findIndex(m => m.username === username);
+      return MEMBER_COLORS[(i < 0 ? 0 : i) % MEMBER_COLORS.length];
+    }
+    function summaryOf(m) {
+      if (me && m.username === me.username) return mySummary;
+      return m.summary || { card: 0, loan: 0, cash: 0, discount: 0, savings: 0, cats: {} };
+    }
+
+    function applySync(res, silent) {
+      const prevIds = new Set(entries.map(e => e.id));
+      me = res.me; group = res.group || null; entries = res.entries || [];
+      syncRev = res.rev || syncRev;
+      lastSyncAt = Date.now();
+      if (!silent && hasSynced) {
+        const fresh = entries.filter(e => !prevIds.has(e.id) && me && e.owner !== me.username);
+        if (fresh.length === 1) {
+          const e = fresh[0];
+          showToast(`${esc(e.ownerName)}님이 ${esc(e.category)} ${won(e.amount)} ${e.type === 'income' ? '수입' : '지출'}을 기록했어요`);
+        } else if (fresh.length > 1) {
+          showToast(`가족이 새 기록 ${fresh.length}건을 추가했어요`);
+        }
+      }
+      hasSynced = true;
+    }
+
+    function setSyncState(state) {
+      const chip = $('syncChip'), txt = $('syncText');
+      if (!chip) return;
+      chip.classList.remove('syncing', 'error');
+      if (state === 'syncing') { chip.classList.add('syncing'); txt.textContent = '동기화 중…'; }
+      else if (state === 'error') { chip.classList.add('error'); txt.textContent = '연결 끊김 · 눌러서 재시도'; }
+      else { const d = new Date(lastSyncAt || Date.now()); txt.textContent = '방금 동기화됨 · ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+    }
+
+    function syncNow(opts) {
+      opts = opts || {};
+      if (!token || !me) return Promise.resolve();
+      if ((syncing && !opts.force) || writesInFlight > 0) return Promise.resolve();
+      syncing = true; setSyncState('syncing');
+      return apiCall('sync', { ym: viewYm, rev: opts.force ? '' : syncRev, force: !!opts.force })
+        .then(res => {
+          syncing = false;
+          if (!res || !res.success) { errCount++; setSyncState('error'); return; }
+          errCount = 0; lastSyncAt = Date.now();
+          if (!res.unchanged) {
+            applySync(res);
+            ensureViewTab();
+            renderHousehold();
+            if (res.dataRev && res.dataRev !== dataRev && !isEditMode) reloadOwnData();
+          }
+          setSyncState('ok');
+        })
+        .catch(() => { syncing = false; errCount++; setSyncState('error'); });
+    }
+
+    // 다른 기기에서 내 고정지출이 바뀐 경우 다시 불러오기
+    function reloadOwnData() {
+      apiCall('sync', { ym: viewYm, withData: true, force: true }).then(res => {
+        if (!res || !res.success || isEditMode) return;
+        parseOwnData(res.data); dataRev = res.dataRev || '';
+        applySync(res, true); renderAll();
+      }).catch(() => {});
+    }
+
+    function startPolling() {
+      stopPolling();
+      const tick = () => {
+        pollTimer = setTimeout(() => {
+          if (!document.hidden) syncNow();
+          tick();
+        }, errCount >= 3 ? 30000 : 12000);
+      };
+      tick();
+    }
+    function stopPolling() { if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; } }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && token && me) syncNow(); });
+    window.addEventListener('online', () => { if (token && me) syncNow({ force: true }); });
+
+    function ensureViewTab() {
+      if (viewTab === 'all' || viewTab === 'me') return;
+      if (!memberList().some(m => m.username === viewTab)) viewTab = 'all';
+    }
+
+    function shiftMonth(delta) {
+      const p = viewYm.split('-').map(Number);
+      const d = new Date(p[0], p[1] - 1 + delta, 1);
+      const next = d.getFullYear() + '-' + pad(d.getMonth() + 1);
+      if (next > curYm()) return;
+      viewYm = next;
+      renderHousehold();
+      syncNow({ force: true });
+    }
+
+    function setViewTab(t) {
+      if (isEditMode) { showToast('편집을 먼저 완료해주세요.', true); return; }
+      viewTab = t;
+      renderHousehold();
+    }
+
+    /* ============================================================
+       화면 — 합산 / 탭 / 차트 / 기록 목록
+       ============================================================ */
+    function viewedUsernames() {
+      const all = memberList().map(m => m.username);
+      if (viewTab === 'all') return all;
+      if (viewTab === 'me') return me ? [me.username] : [];
+      return [viewTab];
+    }
+
+    function renderHousehold() {
+      if (!me) return;
+      const multi = memberList().length > 1;
+      ensureViewTab();
+      const names = viewedUsernames();
+      const members = memberList().filter(m => names.indexOf(m.username) >= 0);
+
+      // 고정지출 합산
+      const agg = { card: 0, loan: 0, cash: 0, discount: 0, savings: 0, cats: {} };
+      members.forEach(m => {
+        const s = summaryOf(m);
+        agg.card += s.card || 0; agg.loan += s.loan || 0; agg.cash += s.cash || 0;
+        agg.discount += s.discount || 0; agg.savings += s.savings || 0;
+        Object.keys(s.cats || {}).forEach(k => { agg.cats[k] = (agg.cats[k] || 0) + (s.cats[k] || 0); });
+      });
+
+      // 이달 기록 합산
+      let income = 0, entrySpend = 0;
+      const viewed = entries.filter(e => names.indexOf(e.owner) >= 0);
+      viewed.forEach(e => {
+        if (e.type === 'income') income += e.amount;
+        else {
+          entrySpend += e.amount;
+          agg.cats[e.category] = (agg.cats[e.category] || 0) + e.amount;
+          if (e.category === '저축') agg.savings += e.amount;
+        }
+      });
+
+      const fixed = agg.card + agg.loan + agg.cash;
+      const total = fixed + entrySpend;
+      const real = total - agg.savings;
+      const net = income - real;
+
+      // 상단 합계
+      $('monthLabel').textContent = ymLabel(viewYm);
+      $('btnNextMonth').disabled = viewYm >= curYm();
+      $('sumIncome').textContent = won(income);
+      $('sumSpend').textContent = won(real);
+      const netEl = $('sumNet');
+      netEl.textContent = (net < 0 ? '-' : '') + won(Math.abs(net));
+      netEl.classList.toggle('neg', net < 0);
+      animateValue('totalDisplay', 0, total, 400);
+
+      renderTabs(multi);
+      $('noGroupCard').style.display = group ? 'none' : 'block';
+      $('famGearText').textContent = group ? group.name || '가족' : '가족';
+
+      // 차트
+      const catData = Object.keys(agg.cats).filter(k => agg.cats[k] > 0).map(k => ({ name: k, y: agg.cats[k] })).sort((a, b) => b.y - a.y);
+      updateCharts(agg.card, agg.loan, agg.cash, agg.discount, catData, entrySpend);
+
+      // 다른 구성원 탭: 내 카드/대출/현금 숨김
+      const other = viewTab !== 'all' && viewTab !== 'me';
+      document.body.classList.toggle('view-other', other);
+      if (other) {
+        const m = memberList().find(x => x.username === viewTab);
+        const nm = m ? m.name : '구성원';
+        $('otherNote').innerHTML = `<b>${esc(nm)}</b>님의 카드·대출·현금 상세 내역은 비공개이며, 위 차트에는 <b>합계와 분류별 금액</b>만 반영됩니다.`;
+      }
+      renderFeed(viewed);
+    }
+
+    function renderTabs(multi) {
+      const box = $('famTabs');
+      if (!multi) { box.style.display = 'none'; box.innerHTML = ''; return; }
+      box.style.display = 'flex';
+      const tabs = [{ key: 'all', label: '전체', color: '#6B7280' }];
+      tabs.push({ key: 'me', label: '나', color: memberColor(me.username) });
+      memberList().filter(m => m.username !== me.username).forEach(m => tabs.push({ key: m.username, label: m.name, color: memberColor(m.username) }));
+      box.innerHTML = tabs.map(t =>
+        `<button class="fam-tab" role="tab" aria-selected="${viewTab === t.key}" onclick="setViewTab('${esc(t.key).replace(/'/g, '')}')"><span class="tab-dot" style="background:${t.color}"></span>${esc(t.label)}</button>`
+      ).join('');
+    }
+
+    let feedLimit = 15;
+    function renderFeed(list) {
+      const box = $('feedList');
+      const sorted = list.slice().sort((a, b) => (b.date === a.date ? (b.createdAt || 0) - (a.createdAt || 0) : (a.date < b.date ? 1 : -1)));
+      if (!group) {
+        box.innerHTML = '<div class="feed-empty">가족 그룹을 만들면 수입·지출을 기록하고<br>가족과 함께 볼 수 있어요.</div>';
+        return;
+      }
+      if (!sorted.length) {
+        box.innerHTML = `<div class="feed-empty">${esc(ymLabel(viewYm))}에는 아직 기록이 없어요.<br>오른쪽 아래 <b>+</b> 버튼으로 첫 기록을 남겨보세요.</div>`;
+        return;
+      }
+      const shown = sorted.slice(0, feedLimit);
+      box.innerHTML = shown.map(e => {
+        const mine = me && e.owner === me.username;
+        const md = e.date.slice(5).replace('-', '/');
+        const inc = e.type === 'income';
+        const title = e.memo ? e.memo : e.category;
+        const meta = `${esc(e.ownerName)} · ${esc(e.category)} · ${md}`;
+        return `<div class="feed-item${e.pending ? ' pending' : ''}">
+          <div class="feed-av" style="background:${memberColor(e.owner)}" aria-hidden="true">${esc((e.ownerName || '?').charAt(0))}</div>
+          <button class="feed-main${mine && !e.pending ? ' mine' : ''}" ${mine && !e.pending ? `onclick="openEntry('${esc(e.id)}')" aria-label="${esc(title)} 수정"` : 'tabindex="-1"'}>
+            <span class="feed-title">${esc(title)}</span><span class="feed-meta">${meta}</span>
+          </button>
+          <span class="feed-amt ${inc ? 'inc' : 'exp'}">${inc ? '+' : '-'}${Math.round(e.amount).toLocaleString('ko-KR')}</span>
+          ${mine && !e.pending ? `<button class="feed-del" onclick="deleteEntry('${esc(e.id)}')" aria-label="${esc(title)} 삭제"><i class="fas fa-trash"></i></button>` : '<span style="width:12px"></span>'}
+        </div>`;
+      }).join('') + (sorted.length > feedLimit ? `<button class="btn-ghost feed-more" onclick="feedLimit+=20; renderHousehold()">더 보기 (${sorted.length - feedLimit}건)</button>` : '');
+    }
+
+    /* ============================================================
+       시트(바텀시트) 공통 + 확인창
+       ============================================================ */
+    const sheetStack = []; let _lockY = 0; const _openers = {};
+    function openSheet(id) {
+      const m = $(id); if (!m || m.classList.contains('show')) return;
+      if (!sheetStack.length) {
+        _lockY = window.scrollY || window.pageYOffset || 0;
+        document.body.style.top = (-_lockY) + 'px';
+        document.body.classList.add('modal-open');
+      }
+      _openers[id] = document.activeElement;
+      m.classList.add('show'); sheetStack.push(id);
+    }
+    function closeSheet(id) {
+      const m = $(id); if (!m) return;
+      m.classList.remove('show');
+      const i = sheetStack.indexOf(id); if (i >= 0) sheetStack.splice(i, 1);
+      if (!sheetStack.length) {
+        document.body.classList.remove('modal-open'); document.body.style.top = '';
+        window.scrollTo(0, _lockY);
+      }
+      const o = _openers[id]; if (o && o.focus) { try { o.focus(); } catch (e) {} }
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && sheetStack.length) {
+        const top = sheetStack[sheetStack.length - 1];
+        if (top === 'confirmSheet') dismissConfirm(); else closeSheet(top);
+      }
+    });
+
+    let _cfResolve = null, _cfPersistent = false;
+    function dismissConfirm() { if (!_cfPersistent) resolveConfirm(false); }
+    function askConfirm(o) {
+      return new Promise(resolve => {
+        $('cfTitle').textContent = o.title; $('cfMsg').textContent = o.msg || '';
+        $('cfOk').textContent = o.ok || '삭제'; $('cfCancel').textContent = o.cancel || '취소';
+        _cfPersistent = !!o.persistent;
+        _cfResolve = resolve; openSheet('confirmSheet');
+        setTimeout(() => $('cfCancel').focus(), 60);
+      });
+    }
+    function resolveConfirm(v) {
+      closeSheet('confirmSheet');
+      const r = _cfResolve; _cfResolve = null; if (r) r(v);
+    }
+
+    /* ============================================================
+       빠른 입력(+) 시트
+       ============================================================ */
+    const EXP_CATS = ['식비', '장보기', '교통', '생활비', '공과금', '의료', '교육', '여가', '쇼핑', '경조사', '저축', '기타'];
+    const INC_CATS = ['급여', '상여', '부수입', '용돈', '이자·배당', '환급', '기타 수입'];
+    let ent = { type: 'expense', cat: '', editId: null, showAll: false, custom: false };
+
+    function catChoices() {
+      const base = ent.type === 'income' ? INC_CATS : EXP_CATS;
+      const freq = {};
+      entries.filter(e => e.type === ent.type).forEach(e => { freq[e.category] = (freq[e.category] || 0) + 1; });
+      const merged = base.slice();
+      Object.keys(freq).forEach(k => { if (merged.indexOf(k) < 0) merged.push(k); });
+      return merged.map((c, i) => ({ c: c, i: i })).sort((a, b) => ((freq[b.c] || 0) - (freq[a.c] || 0)) || (a.i - b.i)).map(x => x.c);
+    }
+
+    function renderEntryChips() {
+      const list = catChoices();
+      const visible = ent.showAll ? list : list.slice(0, 8);
+      let html = visible.map(c => `<button class="chip" aria-pressed="${!ent.custom && ent.cat === c}" onclick="pickCat(this.dataset.c)" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+      if (!ent.showAll && list.length > 8) html += `<button class="chip more" onclick="ent.showAll=true; renderEntryChips()">더보기</button>`;
+      html += `<button class="chip more" aria-pressed="${ent.custom}" onclick="pickCustom()">직접 입력</button>`;
+      $('entChips').innerHTML = html;
+      $('entCatCustom').style.display = ent.custom ? 'block' : 'none';
+    }
+    function pickCat(c) { ent.cat = c; ent.custom = false; renderEntryChips(); validateEntryForm(); }
+    function pickCustom() { ent.custom = true; ent.cat = $('entCatCustom').value.trim(); renderEntryChips(); setTimeout(() => $('entCatCustom').focus(), 30); validateEntryForm(); }
+    function onEntryCustom(el) { ent.cat = el.value.trim(); validateEntryForm(); }
+    function onEntryAmount(el) {
+      const n = parseInt(el.value.replace(/[^0-9]/g, ''), 10) || 0;
+      el.value = n ? n.toLocaleString('ko-KR') : '';
+      validateEntryForm();
+    }
+    function entryAmount() { return parseInt($('entAmount').value.replace(/[^0-9]/g, ''), 10) || 0; }
+    function validateEntryForm() { $('entSubmit').disabled = !(entryAmount() > 0 && ent.cat); }
+    function setEntryType(t) {
+      ent.type = t; ent.cat = ''; ent.custom = false; ent.showAll = false; $('entCatCustom').value = '';
+      $('segExp').setAttribute('aria-pressed', t === 'expense'); $('segInc').setAttribute('aria-pressed', t === 'income');
+      renderEntryChips(); validateEntryForm();
+    }
+
+    function openEntry(editId, draft) {
+      if (!me) return;
+      if (!group) { showToast('먼저 가족 그룹을 만들거나 참여해주세요.', true); openFamily(); return; }
+      const e = editId ? entries.find(x => x.id === editId) : null;
+      ent = { type: 'expense', cat: '', editId: e ? e.id : null, showAll: false, custom: false };
+      const src = e || draft || null;
+      if (src) { ent.type = src.type; ent.cat = src.category; }
+      if (src && catChoices().indexOf(src.category) < 0) ent.custom = true;
+      $('entryTitle').innerHTML = e ? '<i class="fas fa-pen-to-square"></i> 기록 수정' : '<i class="fas fa-pen-to-square"></i> 기록 추가';
+      $('segExp').setAttribute('aria-pressed', ent.type === 'expense'); $('segInc').setAttribute('aria-pressed', ent.type === 'income');
+      $('entAmount').value = src ? Number(src.amount).toLocaleString('ko-KR') : '';
+      $('entMemo').value = src ? (src.memo || '') : '';
+      $('entDate').value = src ? src.date : (viewYm === curYm() ? todayLocal() : viewYm + '-01');
+      $('entDate').max = todayLocal();
+      $('entCatCustom').value = ent.custom ? ent.cat : '';
+      $('entBy').textContent = '입력자: ' + me.name;
+      $('entDelete').style.display = e ? 'block' : 'none';
+      renderEntryChips(); validateEntryForm();
+      openSheet('entrySheet');
+      setTimeout(() => $('entAmount').focus(), 120);
+    }
+
+    function submitEntry() {
+      const amount = entryAmount();
+      if (!(amount > 0) || !ent.cat) return;
+      const payload = { type: ent.type, amount: amount, date: $('entDate').value || todayLocal(), category: ent.cat, memo: $('entMemo').value.trim() };
+      const editId = ent.editId;
+      closeSheet('entrySheet');
+      const inView = payload.date.slice(0, 7) === viewYm;
+
+      if (editId) {
+        const idx = entries.findIndex(x => x.id === editId);
+        const old = idx >= 0 ? entries[idx] : null;
+        if (idx >= 0) { entries[idx] = Object.assign({}, old, payload); if (!inView) entries.splice(idx, 1); }
+        renderHousehold();
+        writesInFlight++;
+        apiCall('entryUpdate', Object.assign({ id: editId }, payload)).then(res => {
+          writesInFlight--;
+          if (res && res.success) { showToast('수정했어요'); syncNow({ force: true }); }
+          else { if (old) { entries = entries.filter(x => x.id !== editId); entries.push(old); } renderHousehold(); showToast((res && res.message) || '수정에 실패했어요', true); }
+        }).catch(() => {
+          writesInFlight--;
+          if (old) { entries = entries.filter(x => x.id !== editId); entries.push(old); } renderHousehold();
+          showToast('수정 실패 · 눌러서 다시 시도', true, { action: () => openEntry(editId, payload), duration: 6000 });
+        });
+        return;
+      }
+
+      const tmpId = 'tmp' + Date.now();
+      if (inView) {
+        entries.unshift(Object.assign({ id: tmpId, owner: me.username, ownerName: me.name, createdAt: Date.now(), pending: true }, payload));
+        renderHousehold();
+      }
+      writesInFlight++;
+      const fail = (msg) => {
+        entries = entries.filter(x => x.id !== tmpId); renderHousehold();
+        showToast(msg + ' · 눌러서 다시 시도', true, { action: () => openEntry(null, payload), duration: 7000 });
+      };
+      apiCall('entryAdd', payload).then(res => {
+        writesInFlight--;
+        if (res && res.success) {
+          entries = entries.filter(x => x.id !== tmpId);
+          if (inView && res.entry) entries.unshift(res.entry);
+          renderHousehold();
+          showToast(inView ? '기록했어요' : `${ymLabel(payload.date.slice(0, 7))}에 기록했어요`);
+          syncNow({ force: true });
+        } else if (res && res.code === 'NOGROUP') { entries = entries.filter(x => x.id !== tmpId); renderHousehold(); openFamily(); }
+        else fail((res && res.message) || '기록에 실패했어요');
+      }).catch(() => { writesInFlight--; fail('네트워크 오류'); });
+    }
+
+    function deleteEntryFromSheet() {
+      const id = ent.editId; closeSheet('entrySheet'); if (id) deleteEntry(id);
+    }
+    function deleteEntry(id) {
+      const idx = entries.findIndex(x => x.id === id); if (idx < 0) return;
+      const e = entries[idx];
+      entries.splice(idx, 1); renderHousehold();
+      writesInFlight++;
+      apiCall('entryDelete', { id: id }).then(res => {
+        writesInFlight--;
+        if (res && res.success) {
+          showToast('삭제했어요 · 눌러서 되돌리기', false, { duration: 6000, action: () => {
+            entries.push(e); renderHousehold();
+            apiCall('entryRestore', { id: id }).then(r => { if (!r || !r.success) { showToast('되돌리기에 실패했어요', true); syncNow({ force: true }); } }).catch(() => { showToast('되돌리기 실패 · 네트워크 오류', true); syncNow({ force: true }); });
+          } });
+        } else { entries.push(e); renderHousehold(); showToast((res && res.message) || '삭제에 실패했어요', true); }
+      }).catch(() => { writesInFlight--; entries.push(e); renderHousehold(); showToast('삭제 실패 · 네트워크 오류', true); });
+    }
+
+    /* ============================================================
+       가족 그룹 설정 시트
+       ============================================================ */
+    function openFamily() {
+      renderFamilyBody(); openSheet('familySheet');
+    }
+    function renderFamilyBody() {
+      const b = $('famBody');
+      if (!group) {
+        b.innerHTML = `
+          <p class="sheet-hint" style="margin-top:0">그룹을 만들거나 초대 코드로 참여하면, 각자 입력한 수입·지출이 한곳에 모입니다. 카드·대출·현금 상세 내역은 본인만 볼 수 있어요.</p>
+          <label for="famName">새 그룹 만들기</label>
+          <input type="text" id="famName" maxlength="20" placeholder="그룹 이름 (예: 우리집)" autocomplete="off">
+          <div class="sheet-row"><button class="btn-primary" id="famCreateBtn" onclick="createGroup()">그룹 만들기</button></div>
+          <label for="famCode" style="margin-top:22px">초대 코드로 참여</label>
+          <input type="text" id="famCode" maxlength="8" placeholder="6자리 초대 코드" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase; letter-spacing:3px">
+          <div class="sheet-row"><button class="btn-ghost" id="famJoinBtn" onclick="joinGroup()">참여하기</button></div>`;
+      } else {
+        b.innerHTML = `
+          <div style="font-size:18px; font-weight:800; color:var(--ht-navy)">${esc(group.name)}</div>
+          <label>구성원 ${group.members.length}명</label>
+          <ul class="member-list">${group.members.map(m => `<li><span class="feed-av" style="background:${memberColor(m.username)}; width:32px; height:32px; font-size:13px">${esc((m.name || '?').charAt(0))}</span>${esc(m.name)}${me && m.username === me.username ? ' <span style="color:#6B7280; font-weight:500">(나)</span>' : ''}</li>`).join('')}</ul>
+          <label>초대 코드</label>
+          <div class="invite-box">
+            <div class="invite-code" aria-label="초대 코드 ${esc(group.inviteCode)}">${esc(group.inviteCode)}</div>
+            <div class="sheet-row" style="margin-top:0"><button class="btn-ghost" onclick="copyInvite()"><i class="far fa-copy"></i> 복사</button><button class="btn-primary" onclick="shareInvite()"><i class="fas fa-share-nodes"></i> 공유</button></div>
+          </div>
+          <p class="sheet-hint">가족이 로그인한 뒤 <b>가족 → 초대 코드로 참여</b>에 이 코드를 입력하면 됩니다. 계정은 관리자가 먼저 만들어야 해요.</p>
+          <div class="sheet-row" style="margin-top:26px"><button class="btn-ghost" style="color:#B91C1C; border-color:#FCA5A5" onclick="leaveGroup()">그룹 나가기</button></div>`;
+      }
+    }
+    function afterGroupChange() {
+      return syncNow({ force: true }).then(() => { renderFamilyBody(); renderHousehold(); });
+    }
+    function createGroup() {
+      const name = $('famName').value.trim();
+      const btn = $('famCreateBtn'); btn.disabled = true; btn.textContent = '만드는 중…';
+      apiCall('groupCreate', { name: name || (me.name + '의 가족') }).then(res => {
+        if (res && res.success) { showToast('그룹을 만들었어요'); afterGroupChange(); }
+        else { btn.disabled = false; btn.textContent = '그룹 만들기'; showToast((res && res.message) || '그룹을 만들지 못했어요', true); }
+      }).catch(() => { btn.disabled = false; btn.textContent = '그룹 만들기'; showToast('서버 연결에 실패했습니다. 다시 시도해주세요.', true); });
+    }
+    function joinGroup() {
+      const code = $('famCode').value.trim().toUpperCase();
+      if (code.length < 4) { showToast('초대 코드를 입력해주세요.', true); return; }
+      const btn = $('famJoinBtn'); btn.disabled = true; btn.textContent = '참여 중…';
+      apiCall('groupJoin', { code: code }).then(res => {
+        if (res && res.success) { showToast('그룹에 참여했어요'); afterGroupChange(); }
+        else { btn.disabled = false; btn.textContent = '참여하기'; showToast((res && res.message) || '참여하지 못했어요', true); }
+      }).catch(() => { btn.disabled = false; btn.textContent = '참여하기'; showToast('서버 연결에 실패했습니다. 다시 시도해주세요.', true); });
+    }
+    function leaveGroup() {
+      askConfirm({ title: '그룹에서 나갈까요?', msg: '나가면 가족의 기록을 더 이상 볼 수 없고, 내가 남긴 기록도 그룹에서 보이지 않습니다.', ok: '나가기' }).then(ok => {
+        if (!ok) return;
+        apiCall('groupLeave').then(res => {
+          if (res && res.success) { viewTab = 'all'; showToast('그룹에서 나갔어요'); afterGroupChange(); }
+          else showToast((res && res.message) || '나가지 못했어요', true);
+        }).catch(() => showToast('서버 연결에 실패했습니다.', true));
+      });
+    }
+    function copyText(t) {
+      if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+      return new Promise((res, rej) => {
+        try { const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); res(); } catch (e) { rej(e); }
+      });
+    }
+    function copyInvite() { copyText(group.inviteCode).then(() => showToast('초대 코드를 복사했어요')).catch(() => showToast('복사하지 못했어요. 코드를 직접 입력해주세요.', true)); }
+    function shareInvite() {
+      const text = `스마트 지출 가족 그룹 "${group.name}" 초대 코드: ${group.inviteCode}`;
+      if (navigator.share) navigator.share({ title: '스마트 지출 초대', text: text }).catch(() => {});
+      else copyInvite();
     }
 
     function fmt(n) { return Math.round(n).toLocaleString('ko-KR') + '원'; }
