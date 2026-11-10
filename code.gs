@@ -641,6 +641,8 @@ function parseCardAlert(text) {
   if (!amount) return null;
   const dm = t.match(/(\d{1,2})\/(\d{1,2})\s*(\d{1,2}):(\d{2})/);
   const l4 = t.match(/(?:신용|체크|카드)\s*\(?(\d{4})\)?/) || t.match(/(\d{4})\s*(?:승인|취소)/) || t.match(/\((\d{4})\)/);
+  // 광고·안내 알림(예: '최대 10,000원 캐시백')은 무시: 승인/취소 글자와 날짜·카드번호 중 하나가 있어야 함
+  if (!/승인|취소|사용\s*알림|결제/.test(t) || (!dm && !l4)) return null;
   // 가맹점: 알려진 조각을 지우고 남는 글자
   let s = t.replace(/(누적|잔여|한도|잔액).*$/, '').replace(/(\.\.\.|…).*$/, '').replace(/\[[^\]]*\]/g, ' ');
   if (dm) s = s.replace(dm[0], ' ');
