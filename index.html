@@ -776,6 +776,13 @@
     .as-btn { margin-top: 6px; min-height: 52px; border-radius: 12px; border: none; background: #1E3A8A; color: #fff; font-size: 17px; font-weight: 800; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
     .as-btn.ghost { background: #fff; color: #1E3A8A; border: 2px solid #1E3A8A; }
     .as-btn:disabled { opacity: 0.7; }
+    .card-picks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+    .card-pick { min-height: 56px; border-radius: 12px; border: 2px solid #CBD5E1; background: #fff; color: #0F172A; font-size: 16px; font-weight: 800; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 4px; }
+    .card-pick small { font-size: 12px; font-weight: 600; color: #64748B; }
+    .card-pick[aria-pressed="true"] { border-color: #1E3A8A; background: #EEF2F9; color: #1E3A8A; box-shadow: inset 0 0 0 1px #1E3A8A; }
+    .card-pick { position: relative; }
+    .card-pick[aria-pressed="true"]::after { content: '✓'; position: absolute; top: 4px; right: 8px; font-size: 14px; font-weight: 900; color: #1E3A8A; }
+    .card-pick-count { font-size: 14px; font-weight: 700; color: #1E3A8A; min-height: 18px; }
     .auto-tag { display: inline-block; font-size: 10.5px; font-weight: 800; color: #1E3A8A; background: #EEF2F9; border: 1px solid #C9D3E6; border-radius: 6px; padding: 0 5px; margin-right: 5px; line-height: 16px; vertical-align: 1px; }
     .auto-state { font-size: 12px; font-weight: 700; color: #64748B; background: #F1F5F9; border-radius: 10px; padding: 2px 8px; margin-left: 6px; vertical-align: 2px; }
     .auto-state.on { color: #047857; background: #ECFDF5; }
@@ -3316,11 +3323,31 @@
     /* ===== 카드 알림 자동 기록 (MacroDroid 설정 파일 한 번에 받기) ===== */
     let autoNewKey = null;
     const MACRODROID_STORE = 'https://play.google.com/store/apps/details?id=com.arlosoft.macrodroid';
-    const CARD_APPS = [['KB Pay', 'com.kbcard.cxh.appcard']];
+    // [화면 이름, 앱 이름(MacroDroid 표시용), 앱 패키지]
+    const CARD_APPS = [
+      ['KB국민카드', 'KB Pay', 'com.kbcard.cxh.appcard'],
+      ['신한카드', '신한 SOL페이', 'com.shcard.smartpay'],
+      ['삼성카드', '삼성카드', 'kr.co.samsungcard.mpocket'],
+      ['현대카드', '현대카드', 'com.hyundaicard.appcard'],
+      ['롯데카드', '디지로카', 'com.lcacApp'],
+      ['우리카드', '우리WON카드', 'com.wooricard.smartapp'],
+      ['하나카드', '하나Pay', 'com.hanaskcard.paycla'],
+      ['NH농협카드', 'NH pay', 'nh.smart.nhallonepay'],
+      ['BC카드', '페이북', 'kvp.jjy.MispAndroid320']
+    ];
+    function myCardApps() { try { const v = JSON.parse(localStorage.getItem('ss_cardapps') || '[]'); return Array.isArray(v) ? v.filter(p => CARD_APPS.some(c => c[2] === p)) : []; } catch (e) { return []; } }
+    function toggleCardApp(pkg, btn) {
+      const cur = myCardApps(), i = cur.indexOf(pkg);
+      if (i >= 0) cur.splice(i, 1); else cur.push(pkg);
+      try { localStorage.setItem('ss_cardapps', JSON.stringify(cur)); } catch (e) {}
+      btn.setAttribute('aria-pressed', i < 0);
+      const n = $('cardPickCount'); if (n) n.textContent = cur.length ? cur.length + '곳 골랐어요' : '';
+    }
     function autoUrl(k) { return SCRIPT_URL + '?action=tx&key=' + k; }
     function rndLong() { let d = String(1 + Math.floor(Math.random() * 8)); for (let i = 0; i < 17; i++) d += Math.floor(Math.random() * 10); return '-' + d; }
     // MacroDroid 가져오기용 매크로 파일 (알림 수신 → HTTP POST)
-    function buildMacro(key) {
+    function buildMacro(key, pkgs) {
+      const apps = CARD_APPS.filter(c => pkgs.indexOf(c[2]) >= 0);
       const m = {
         macro: {
           aiGenerated: 0, breakpoints: [], disabledTimestamp: 0, exportedActionBlocks: [], forceEvenIfNotEnabledTimestamp: 0,
@@ -3329,7 +3356,7 @@
           m_descriptionOpen: false, m_enabled: true, m_excludeLog: false, m_headingColor: 0, m_isOrCondition: false, m_name: '스마트 지출 자동기록',
           m_triggerList: [{
             enableRegex: false, ignoreCase: true,
-            m_applicationNameList: CARD_APPS.map(x => x[0]), m_packageNameList: CARD_APPS.map(x => x[1]),
+            m_applicationNameList: apps.map(x => x[1]), m_packageNameList: apps.map(x => x[2]),
             m_exactMatch: false, m_excludeApps: false, m_excludes: false, m_ignoreOngoing: true, m_option: 0, m_soundOption: 0, m_supressMultiples: false,
             m_textContent: '', matchOptionMessage: 0, matchOptionTitle: 0, separateTitleAndMessage: false, disableLogging: false,
             m_SIGUID: '__S1__', m_classType: 'NotificationTrigger', m_comment: '', m_constraintList: [], m_isDisabled: false, m_isOrCondition: false
@@ -3354,8 +3381,8 @@
       };
       return JSON.stringify(m, null, 2).replace('"__G__"', rndLong()).replace('"__S1__"', rndLong()).replace('"__S2__"', rndLong());
     }
-    function downloadMacro(key) {
-      const blob = new Blob([buildMacro(key)], { type: 'application/octet-stream' });
+    function downloadMacro(key, pkgs) {
+      const blob = new Blob([buildMacro(key, pkgs)], { type: 'application/octet-stream' });
       const url = URL.createObjectURL(blob), a = document.createElement('a');
       a.href = url; a.download = 'smart-expense-auto.macro'; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
@@ -3368,7 +3395,7 @@
       return `
         <div class="sheet-section auto-sec">
           <h3>카드 쓰면 자동 기록 <span class="auto-state ${on ? 'on' : ''}">${on ? '켜짐' : '꺼짐'}</span></h3>
-          <p class="auto-lead">KB Pay에서 결제 알림이 오면, 가계부에 <b>저절로</b> 적혀요.<br><small>안드로이드폰에서만 돼요.</small></p>
+          <p class="auto-lead">카드사 앱에서 결제 알림이 오면, 가계부에 <b>저절로</b> 적혀요.<br><small>안드로이드폰에서만 돼요.</small></p>
           ${on && lastTxt ? `<p class="auto-ok"><i class="fas fa-circle-check"></i> 마지막 자동 기록: <b>${lastTxt}</b></p>` : ''}
           ${on && !lastTxt ? `<p class="auto-wait"><i class="fas fa-hourglass-half"></i> 설정이 끝났다면 카드를 한 번 써보세요. 여기에 기록 시간이 나와요.</p>` : ''}
           <ol class="auto-steps">
@@ -3379,15 +3406,21 @@
             </li>
             <li>
               <div class="as-num">2</div>
+              <div class="as-body"><b>쓰는 카드사 고르기</b><span>결제 알림을 받는 카드사를 눌러주세요. 여러 곳을 골라도 돼요.</span>
+                <div class="card-picks">${(() => { const mine = myCardApps(); return CARD_APPS.map(c => `<button type="button" class="card-pick" aria-pressed="${mine.indexOf(c[2]) >= 0}" onclick="toggleCardApp('${c[2]}', this)">${c[0]}<small>${c[1]}</small></button>`).join(''); })()}</div>
+                <span class="card-pick-count" id="cardPickCount">${myCardApps().length ? myCardApps().length + '곳 골랐어요' : ''}</span></div>
+            </li>
+            <li>
+              <div class="as-num">3</div>
               <div class="as-body"><b>설정 파일 받기</b><span>버튼을 누르면 파일이 폰에 저장돼요.</span>
                 <button class="as-btn" id="btnMacro" onclick="autoGetFile()"><i class="fas fa-download"></i> 설정 파일 받기</button></div>
             </li>
             <li>
-              <div class="as-num">3</div>
+              <div class="as-num">4</div>
               <div class="as-body"><b>받은 파일 열기</b><span>화면 위에서 아래로 내려 <b>'smart-expense-auto.macro'</b> 알림을 누르고, <b>MacroDroid</b>를 고른 뒤 <b>가져오기</b>를 누르세요.</span></div>
             </li>
             <li>
-              <div class="as-num">4</div>
+              <div class="as-num">5</div>
               <div class="as-body"><b>'허용' 누르기</b><span>MacroDroid가 <b>알림 접근 권한</b>을 물어보면 <b>MacroDroid</b>를 켜고 <b>허용</b>을 누르세요. 이걸로 끝이에요.</span></div>
             </li>
           </ol>
@@ -3404,7 +3437,8 @@
             ${autoNewKey ? `<div class="auto-key"><p class="auto-warn"><i class="fas fa-key"></i> 직접 설정할 때 쓰는 주소예요. 남에게 알려주지 마세요.</p>
               <div class="auto-url">${esc(autoUrl(autoNewKey))}</div>
               <button class="btn-ghost" style="width:100%; margin-top:8px" onclick="copyAutoUrl()"><i class="fas fa-copy"></i> 주소 복사</button></div>` : ''}
-            <p class="sheet-hint">직접 만들 때: 트리거 <b>알림 수신</b>(KB Pay) → 액션 <b>HTTP 요청</b>, POST, 위 주소, 본문 <b>{notification}</b>, text/plain.</p>
+            <p class="sheet-hint">카드사를 바꾸거나 추가하면 <b>설정 파일을 다시 받아</b> 가져와 주세요.</p>
+            <p class="sheet-hint">직접 만들 때: 트리거 <b>알림 수신</b>(카드사 앱) → 액션 <b>HTTP 요청</b>, POST, 위 주소, 본문 <b>{notification}</b>, text/plain.</p>
             <div class="auto-test">
               <label for="autoTestText">알림 글자 시험해보기</label>
               <textarea id="autoTestText" rows="2" placeholder="[KB Pay 사용 알림] 신용 0011 11/10 14:02 3,500원 아마노코리아본사 승인"></textarea>
@@ -3417,12 +3451,14 @@
     }
     // 설정 파일 받기: 새 개인 주소를 만들고 그 주소가 들어간 파일을 내려받음
     function autoGetFile() {
+      const pkgs = myCardApps();
+      if (!pkgs.length) { showToast('먼저 2번에서 쓰는 카드사를 골라주세요', true); const el = document.querySelector('.card-picks'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
       const go = () => {
         const btn = $('btnMacro'); if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 만드는 중...'; }
         apiCall('autoKeyCreate', {}).then(res => {
           if (res && res.success && res.key) {
             autoNewKey = res.key; if (me) me.auto = true;
-            downloadMacro(res.key);
+            downloadMacro(res.key, pkgs);
             renderFamilyBody();
             showToast('설정 파일을 받았어요. 이제 3번처럼 파일을 열어주세요');
           } else { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-download"></i> 설정 파일 받기'; } showToast((res && res.message) || '파일을 만들지 못했어요', true); }
