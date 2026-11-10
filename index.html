@@ -745,7 +745,8 @@
     .perf-ex { color: #64748B; }
 
     /* ===== 통계 ===== */
-    .login-note { color: rgba(255,255,255,0.6); font-size: 13px; line-height: 1.6; margin: 14px 0 0; }
+    .login-note { color: rgba(255,255,255,0.6); font-size: clamp(11px, 3.1vw, 13px); letter-spacing: -0.3px; line-height: 1.7; margin: 14px -6px 0; }
+    .login-note span { display: block; white-space: nowrap; }
     .login-choice { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 4px; }
     .choice-btn { text-align: left; min-height: 64px; padding: 12px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: #fff; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
     .choice-btn b { font-size: 15.5px; } .choice-btn span { font-size: 12.5px; color: rgba(255,255,255,0.65); }
@@ -862,7 +863,7 @@
         <button type="button" class="btn-kakao" id="btnKakao" onclick="kakaoStart('login')"><svg class="kk-sym" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2C6.6 3.2 2.2 6.6 2.2 10.8c0 2.7 1.8 5.1 4.6 6.4l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.4.1 5.4 0 9.8-3.4 9.8-7.7S17.4 3.2 12 3.2z"/></svg><span>카카오로 시작하기</span></button>
         <label class="login-auto"><input type="checkbox" id="autoLogin" checked> 자동 로그인</label>
         <p class="login-error" id="loginError" role="alert"></p>
-        <p class="login-note">처음이면 카카오로 시작한 뒤 가입 신청을 하면 돼요.<br>운영자가 승인하면 바로 쓸 수 있어요.</p>
+        <p class="login-note"><span>처음이면 카카오로 시작한 뒤 가입 신청을 하면 돼요.</span><span>운영자가 승인하면 바로 쓸 수 있어요.</span></p>
       </div>
 
       <div id="kakaoNewPanel" hidden>
