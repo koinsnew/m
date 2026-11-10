@@ -745,6 +745,22 @@
     .perf-ex { color: #64748B; }
 
     /* ===== 통계 ===== */
+    .login-note { color: rgba(255,255,255,0.6); font-size: 13px; line-height: 1.6; margin: 14px 0 0; }
+    .login-choice { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 4px; }
+    .choice-btn { text-align: left; min-height: 64px; padding: 12px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: #fff; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
+    .choice-btn b { font-size: 15.5px; } .choice-btn span { font-size: 12.5px; color: rgba(255,255,255,0.65); }
+    .choice-btn:active { transform: scale(0.98); }
+    .pending-ico { font-size: 34px; color: var(--ht-gold); margin-bottom: 10px; }
+    #pendingPanel .btn-kakao { margin-top: 8px; }
+    .admin-notice { width: 100%; display: flex; align-items: center; gap: 8px; min-height: 48px; margin: 0 0 12px; padding: 0 14px; border-radius: 12px; border: 1px solid #E9D48A; background: #FFFCF0; color: #713F12; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; }
+    .admin-notice span { margin-left: auto; color: #A16207; font-weight: 700; }
+    .adm-count { font-size: 13px; color: #A16207; font-weight: 700; margin-left: 6px; }
+    .adm-item { border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px; margin-top: 10px; background: #fff; }
+    .adm-name { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; } .adm-name span { font-size: 12.5px; color: #64748B; }
+    .adm-acts { display: flex; gap: 8px; } .adm-acts button { flex: 1; min-height: 42px; }
+    .adm-merge { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #E2E8F0; }
+    .adm-merge label { font-size: 12.5px; color: #475569; font-weight: 600; margin: 0 0 6px; display: block; }
+    .adm-merge select { flex: 1; min-height: 42px; border-radius: 10px; border: 1px solid #CBD5E1; padding: 0 10px; font-family: inherit; font-size: 14px; background: #fff; min-width: 0; }
     .kk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; font-size: 14px; font-weight: 600; color: #334155; }
     .kk-row > span { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .kk-sym.dark { width: 18px; height: 18px; fill: #3C1E1E; }
@@ -843,52 +859,50 @@
         <p>우리집 가계부 · 함께 쓰는 지출 관리</p>
       </div>
       <div id="loginPanel">
-      <button type="button" class="btn-kakao" id="btnKakao" onclick="kakaoStart('login')"><svg class="kk-sym" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2C6.6 3.2 2.2 6.6 2.2 10.8c0 2.7 1.8 5.1 4.6 6.4l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.4.1 5.4 0 9.8-3.4 9.8-7.7S17.4 3.2 12 3.2z"/></svg><span>카카오 로그인</span></button>
-      <div class="login-or"><span>또는 아이디로 로그인</span></div>
-      <div class="login-input-wrap">
-        <i class="fas fa-user"></i>
-        <input type="text" id="loginId" class="login-input" placeholder="아이디 입력" autocomplete="username" autocapitalize="none" onkeydown="if(event.key==='Enter') document.getElementById('loginPw').focus()">
-      </div>
-      <div class="login-input-wrap">
-        <i class="fas fa-lock"></i>
-        <input type="password" id="loginPw" class="login-input" placeholder="비밀번호 입력" autocomplete="current-password" onkeyup="if(event.keyCode===13) executeLogin()">
-      </div>
-      <label class="login-auto"><input type="checkbox" id="autoLogin" checked> 자동 로그인</label>
-      <button class="btn-login" id="btnLogin" onclick="executeLogin()">로그인</button>
-      <p class="login-error" id="loginError" role="alert"></p>
-      <button type="button" class="login-link" onclick="showLoginPanel('signupPanel')">처음이세요? <b>초대 코드로 회원가입</b></button>
+        <button type="button" class="btn-kakao" id="btnKakao" onclick="kakaoStart('login')"><svg class="kk-sym" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2C6.6 3.2 2.2 6.6 2.2 10.8c0 2.7 1.8 5.1 4.6 6.4l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.4.1 5.4 0 9.8-3.4 9.8-7.7S17.4 3.2 12 3.2z"/></svg><span>카카오로 시작하기</span></button>
+        <label class="login-auto"><input type="checkbox" id="autoLogin" checked> 자동 로그인</label>
+        <p class="login-error" id="loginError" role="alert"></p>
+        <p class="login-note">처음이면 카카오로 시작한 뒤 가입 신청을 하면 돼요.<br>운영자가 승인하면 바로 쓸 수 있어요.</p>
       </div>
 
-      <div id="signupPanel" hidden>
-        <h2 class="login-h2">회원가입</h2>
-        <p class="login-sub">가족에게 받은 초대 코드가 있어야 가입할 수 있어요.</p>
-        <label class="login-label" for="suCode">초대 코드</label>
-        <input type="text" id="suCode" class="login-input plain code" placeholder="6자리 코드" autocomplete="off" autocapitalize="characters" oninput="normCode(this)">
-        <label class="login-label" for="suName">이름</label>
-        <input type="text" id="suName" class="login-input plain" maxlength="20" placeholder="가족에게 보일 이름" autocomplete="name">
-        <label class="login-label" for="suId">아이디</label>
-        <input type="text" id="suId" class="login-input plain" maxlength="20" placeholder="영문·숫자 4~20자" autocomplete="username" autocapitalize="none">
-        <label class="login-label" for="suPw">비밀번호</label>
-        <input type="password" id="suPw" class="login-input plain" placeholder="8자 이상" autocomplete="new-password">
-        <label class="login-label" for="suPw2">비밀번호 확인</label>
-        <input type="password" id="suPw2" class="login-input plain" placeholder="한 번 더 입력" autocomplete="new-password" onkeydown="if(event.key==='Enter') doSignup()">
-        <button class="btn-login" id="btnSignup" onclick="doSignup()">가입하고 시작하기</button>
-        <p class="login-error" id="signupError" role="alert"></p>
-        <div class="login-or"><span>또는</span></div>
-        <button type="button" class="btn-kakao" onclick="kakaoStart('login')"><svg class="kk-sym" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2C6.6 3.2 2.2 6.6 2.2 10.8c0 2.7 1.8 5.1 4.6 6.4l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.4.1 5.4 0 9.8-3.4 9.8-7.7S17.4 3.2 12 3.2z"/></svg><span>카카오로 가입하기</span></button>
-        <button type="button" class="login-link" onclick="showLoginPanel('loginPanel')"><i class="fas fa-arrow-left"></i> 로그인으로 돌아가기</button>
-      </div>
-
-      <div id="kakaoJoinPanel" hidden>
-        <h2 class="login-h2"><svg class="kk-sym big" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2C6.6 3.2 2.2 6.6 2.2 10.8c0 2.7 1.8 5.1 4.6 6.4l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.4.1 5.4 0 9.8-3.4 9.8-7.7S17.4 3.2 12 3.2z"/></svg>카카오로 가입</h2>
-        <p class="login-sub">처음 오셨네요. 가족에게 받은 초대 코드를 입력하면 가입이 끝나요.</p>
-        <label class="login-label" for="kjCode">초대 코드</label>
-        <input type="text" id="kjCode" class="login-input plain code" placeholder="6자리 코드" autocomplete="off" autocapitalize="characters" oninput="normCode(this)" onkeydown="if(event.key==='Enter') kakaoFinish()">
-        <label class="login-label" for="kjName">이름</label>
-        <input type="text" id="kjName" class="login-input plain" maxlength="20" placeholder="가족에게 보일 이름" autocomplete="name">
-        <button class="btn-login" id="btnKakaoJoin" onclick="kakaoFinish()">가입하고 시작하기</button>
-        <p class="login-error" id="kakaoJoinError" role="alert"></p>
+      <div id="kakaoNewPanel" hidden>
+        <h2 class="login-h2"><svg class="kk-sym big" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2C6.6 3.2 2.2 6.6 2.2 10.8c0 2.7 1.8 5.1 4.6 6.4l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.4.1 5.4 0 9.8-3.4 9.8-7.7S17.4 3.2 12 3.2z"/></svg>처음 오셨네요</h2>
+        <p class="login-sub">예전에 아이디로 쓰던 분은 계정을 합치면 쓰던 기록이 그대로 보여요.</p>
+        <div class="login-choice">
+          <button type="button" class="choice-btn" onclick="showLoginPanel('kakaoMergePanel')"><b>예전에 쓰던 계정이 있어요</b><span>아이디·비밀번호 한 번만 확인하고 합치기</span></button>
+          <button type="button" class="choice-btn" onclick="showLoginPanel('kakaoApplyPanel')"><b>처음 가입해요</b><span>가입 신청 → 운영자 승인 후 사용</span></button>
+        </div>
         <button type="button" class="login-link" onclick="kakaoTicket = null; showLoginPanel('loginPanel')"><i class="fas fa-arrow-left"></i> 취소</button>
+      </div>
+
+      <div id="kakaoMergePanel" hidden>
+        <h2 class="login-h2">기존 계정과 합치기</h2>
+        <p class="login-sub">예전에 쓰던 아이디와 비밀번호를 한 번만 입력하세요. 다음부터는 카카오로 바로 들어가요.</p>
+        <label class="login-label" for="mgId">예전 아이디</label>
+        <input type="text" id="mgId" class="login-input plain" autocomplete="username" autocapitalize="none">
+        <label class="login-label" for="mgPw">예전 비밀번호</label>
+        <input type="password" id="mgPw" class="login-input plain" autocomplete="current-password" onkeydown="if(event.key==='Enter') kakaoMerge()">
+        <button class="btn-login" id="btnMerge" onclick="kakaoMerge()">합치고 시작하기</button>
+        <p class="login-error" id="mergeError" role="alert"></p>
+        <button type="button" class="login-link" onclick="showLoginPanel('kakaoNewPanel')"><i class="fas fa-arrow-left"></i> 뒤로</button>
+      </div>
+
+      <div id="kakaoApplyPanel" hidden>
+        <h2 class="login-h2">가입 신청</h2>
+        <p class="login-sub">운영자가 승인하면 카카오로 바로 쓸 수 있어요.</p>
+        <label class="login-label" for="apName">이름</label>
+        <input type="text" id="apName" class="login-input plain" maxlength="20" placeholder="가족에게 보일 이름" autocomplete="name" onkeydown="if(event.key==='Enter') kakaoApply()">
+        <button class="btn-login" id="btnApply" onclick="kakaoApply()">가입 신청하기</button>
+        <p class="login-error" id="applyError" role="alert"></p>
+        <button type="button" class="login-link" onclick="showLoginPanel('kakaoNewPanel')"><i class="fas fa-arrow-left"></i> 뒤로</button>
+      </div>
+
+      <div id="pendingPanel" hidden>
+        <div class="pending-ico" aria-hidden="true"><i class="fas fa-hourglass-half"></i></div>
+        <h2 class="login-h2" id="pendingTitle">승인을 기다리고 있어요</h2>
+        <p class="login-sub" id="pendingMsg">운영자가 승인하면 카카오로 바로 쓸 수 있어요.</p>
+        <button type="button" class="btn-kakao" onclick="kakaoStart('login')"><svg class="kk-sym" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2C6.6 3.2 2.2 6.6 2.2 10.8c0 2.7 1.8 5.1 4.6 6.4l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.4.1 5.4 0 9.8-3.4 9.8-7.7S17.4 3.2 12 3.2z"/></svg><span>승인됐는지 다시 확인</span></button>
+        <button type="button" class="login-link" onclick="showLoginPanel('loginPanel')"><i class="fas fa-arrow-left"></i> 처음으로</button>
       </div>
     </div>
   </div>
@@ -912,6 +926,7 @@
 
     <main id="homeView">
       <div id="captureArea" class="home-pad">
+        <button type="button" class="admin-notice" id="adminNotice" hidden onclick="openFamily()"></button>
         <div class="month-bar">
           <button onclick="shiftMonth(-1)" aria-label="이전 달"><i class="fas fa-chevron-left"></i></button>
           <span id="monthLabel" aria-live="polite"></span>
@@ -1212,70 +1227,31 @@
        ============================================================ */
     function $(id) { return document.getElementById(id); }
 
-    function executeLogin() {
-      const id = $('loginId').value.trim();
-      const pw = $('loginPw').value.trim();
-      const btn = $('btnLogin');
-      $('loginError').textContent = '';
-      if (!id || !pw) { $('loginError').textContent = '아이디와 비밀번호를 입력해주세요.'; return; }
-
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로그인 중...';
-      btn.disabled = true;
-
-      apiCall('login', { username: id, password: pw })
-        .then(res => {
-          if (res && res.success && res.token) {
-            $('loginPw').value = '';
-            loginSuccess(res);
-          } else {
-            btn.innerHTML = '로그인'; btn.disabled = false;
-            $('loginError').textContent = (res && res.message) ? res.message : '로그인에 실패했습니다.';
-          }
-        })
-        .catch(() => {
-          btn.innerHTML = '로그인'; btn.disabled = false;
-          $('loginError').textContent = '서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해주세요.';
-        });
-    }
-
     /* ===== 회원가입 · 카카오 로그인 ===== */
     const KAKAO_REST_KEY = '509a133c2ff9d784f54b90ea0b9dec9d';   // 카카오 REST API 키(공개용 앱 식별값)
     const KAKAO_REDIRECT = 'https://koinsnew.github.io/m/';
     let kakaoTicket = null;
+    const PANELS = ['loginPanel', 'kakaoNewPanel', 'kakaoMergePanel', 'kakaoApplyPanel', 'pendingPanel'];
     function showLoginPanel(id) {
-      ['loginPanel', 'signupPanel', 'kakaoJoinPanel'].forEach(p => { $(p).hidden = p !== id; });
-      ['loginError', 'signupError', 'kakaoJoinError'].forEach(e => { $(e).textContent = ''; });
-      const first = { loginPanel: 'loginId', signupPanel: 'suCode', kakaoJoinPanel: 'kjCode' }[id];
-      setTimeout(() => { const el = $(first); if (el && !el.value) el.focus(); }, 50);
+      PANELS.forEach(p => { $(p).hidden = p !== id; });
+      ['loginError', 'mergeError', 'applyError'].forEach(e => { $(e).textContent = ''; });
+      const first = { kakaoMergePanel: 'mgId', kakaoApplyPanel: 'apName' }[id];
+      if (first) setTimeout(() => { const el = $(first); if (el && !el.value) el.focus(); }, 50);
     }
     function loginSuccess(res) {
       token = res.token; storeToken(token, $('autoLogin').checked);
       try { localStorage.setItem('ss_auto', $('autoLogin').checked ? '1' : '0'); } catch (e) {}
       showLoginPanel('loginPanel');
       startSession(res.name);
-      if (res.group) setTimeout(() => showToast(`${esc(res.group)}에 가입했어요`), 1200);
+      if (res.merged) setTimeout(() => showToast('기존 계정과 합쳤어요. 다음부터는 카카오로 바로 들어와요'), 1200);
     }
-    function doSignup() {
-      const v = { inviteCode: $('suCode').value.trim(), name: $('suName').value.trim(), username: $('suId').value.trim(), password: $('suPw').value };
-      const err = $('signupError'); err.textContent = '';
-      const bad = (m, id) => { err.textContent = m; $(id).focus(); };
-      if (!/^[A-Z0-9]{6}$/.test(v.inviteCode)) return bad('초대 코드 6자리를 입력해주세요.', 'suCode');
-      if (!v.name) return bad('이름을 입력해주세요.', 'suName');
-      if (!/^[A-Za-z0-9_.-]{4,20}$/.test(v.username)) return bad('아이디는 영문·숫자 4~20자로 만들어주세요.', 'suId');
-      if (v.password.length < 8) return bad('비밀번호는 8자 이상으로 만들어주세요.', 'suPw');
-      if (v.password !== $('suPw2').value) return bad('비밀번호 확인이 일치하지 않아요.', 'suPw2');
-      const btn = $('btnSignup'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 가입 중...';
-      apiCall('register', v).then(res => {
-        btn.disabled = false; btn.textContent = '가입하고 시작하기';
-        if (res && res.success && res.token) { $('suPw').value = ''; $('suPw2').value = ''; loginSuccess(res); }
-        else {
-          err.textContent = (res && res.message) || '가입하지 못했어요.';
-          const f = { invite: 'suCode', name: 'suName', username: 'suId', password: 'suPw' }[res && res.field]; if (f) $(f).focus();
-        }
-      }).catch(() => { btn.disabled = false; btn.textContent = '가입하고 시작하기'; err.textContent = '서버에 연결하지 못했어요. 인터넷 연결을 확인해주세요.'; });
+    function showPending(res) {
+      $('pendingTitle').textContent = res.code === 'REJECTED' ? '가입이 승인되지 않았어요' : (res.applied ? '가입 신청을 보냈어요' : '승인을 기다리고 있어요');
+      $('pendingMsg').textContent = res.message || '';
+      showLoginPanel('pendingPanel');
     }
     function kakaoStart(mode) {
-      if (!KAKAO_REST_KEY || KAKAO_REST_KEY.indexOf('__') === 0) { showToast('카카오 로그인 준비 중이에요.', true); return; }
+      if (!KAKAO_REST_KEY) { showToast('카카오 로그인 준비 중이에요.', true); return; }
       const st = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
       try { sessionStorage.setItem('kk_state', JSON.stringify({ s: st, mode: mode, auto: $('autoLogin').checked })); } catch (e) {}
       location.href = 'https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=' + encodeURIComponent(KAKAO_REST_KEY) +
@@ -1290,7 +1266,7 @@
       history.replaceState(null, '', location.pathname);
       if (!saved || saved.s !== state) { if (code) showToast('카카오 로그인 확인에 실패했어요. 다시 시도해주세요.', true); return false; }
       $('autoLogin').checked = saved.auto !== false;
-      if (error) { showToast('카카오 로그인을 취소했어요.'); return saved.mode === 'link' ? false : false; }
+      if (error) { showToast('카카오 로그인을 취소했어요.'); return false; }
       if (saved.mode === 'link') {
         const t = loadStoredToken(); if (!t) return false;
         token = t; startSession(null);
@@ -1304,38 +1280,84 @@
       apiCall('kakaoLogin', { code: code, redirectUri: KAKAO_REDIRECT }).then(res => {
         $('loading').style.display = 'none';
         if (res && res.success && res.token) { loginSuccess(res); return; }
-        if (res && res.code === 'NEED_INVITE') {
-          kakaoTicket = res.ticket; $('kjName').value = res.nickname || '';
-          showLoginPanel('kakaoJoinPanel'); return;
-        }
+        if (res && res.code === 'NEW') { kakaoTicket = res.ticket; $('apName').value = res.nickname || ''; showLoginPanel('kakaoNewPanel'); return; }
+        if (res && (res.code === 'PENDING' || res.code === 'REJECTED')) { showPending(res); return; }
         $('loginError').textContent = (res && res.message) || '카카오 로그인에 실패했어요.';
       }).catch(() => { $('loading').style.display = 'none'; $('loginError').textContent = '서버에 연결하지 못했어요. 다시 시도해주세요.'; });
       return true;
     }
-    function kakaoFinish() {
-      const err = $('kakaoJoinError'); err.textContent = '';
-      const code = $('kjCode').value.trim();
-      if (!/^[A-Z0-9]{6}$/.test(code)) { err.textContent = '초대 코드 6자리를 입력해주세요.'; $('kjCode').focus(); return; }
-      if (!kakaoTicket) { err.textContent = '카카오 로그인을 다시 눌러주세요.'; return; }
-      const btn = $('btnKakaoJoin'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 가입 중...';
-      apiCall('kakaoComplete', { ticket: kakaoTicket, inviteCode: code, name: $('kjName').value.trim() }).then(res => {
-        btn.disabled = false; btn.textContent = '가입하고 시작하기';
-        if (res && res.success && res.token) { kakaoTicket = null; loginSuccess(res); }
-        else { err.textContent = (res && res.message) || '가입하지 못했어요.'; if (res && res.code === 'TICKET') kakaoTicket = null; }
-      }).catch(() => { btn.disabled = false; btn.textContent = '가입하고 시작하기'; err.textContent = '서버에 연결하지 못했어요.'; });
+    function ticketLost(res, errId) {
+      if (res && res.code === 'TICKET') { kakaoTicket = null; showLoginPanel('loginPanel'); $('loginError').textContent = res.message; return true; }
+      return false;
     }
-    function kakaoUnlink() {
-      askConfirm({ title: '카카오 연결을 해제할까요?', msg: '해제하면 카카오로는 로그인할 수 없고, 아이디·비밀번호로 로그인해야 해요.', ok: '연결 해제', cancel: '취소' }).then(ok => {
-        if (!ok) return;
-        apiCall('kakaoUnlink', {}).then(res => {
-          if (res && res.success) { showToast('카카오 연결을 해제했어요'); syncNow({ force: true }).then(() => renderFamilyBody()); }
-          else showToast((res && res.message) || '해제하지 못했어요', true);
-        }).catch(() => showToast('네트워크 오류', true));
-      });
+    function kakaoMerge() {
+      const err = $('mergeError'); err.textContent = '';
+      const id = $('mgId').value.trim(), pw = $('mgPw').value;
+      if (!id || !pw) { err.textContent = '예전 아이디와 비밀번호를 입력해주세요.'; return; }
+      const btn = $('btnMerge'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 확인 중...';
+      apiCall('kakaoMerge', { ticket: kakaoTicket, username: id, password: pw }).then(res => {
+        btn.disabled = false; btn.textContent = '합치고 시작하기';
+        if (res && res.success && res.token) { kakaoTicket = null; $('mgPw').value = ''; loginSuccess(res); return; }
+        if (res && (res.code === 'PENDING' || res.code === 'REJECTED')) { showPending(res); return; }
+        if (!ticketLost(res)) err.textContent = (res && res.message) || '합치지 못했어요.';
+      }).catch(() => { btn.disabled = false; btn.textContent = '합치고 시작하기'; err.textContent = '서버에 연결하지 못했어요.'; });
+    }
+    function kakaoApply() {
+      const err = $('applyError'); err.textContent = '';
+      const name = $('apName').value.trim();
+      if (!name) { err.textContent = '이름을 입력해주세요.'; $('apName').focus(); return; }
+      const btn = $('btnApply'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 보내는 중...';
+      apiCall('kakaoApply', { ticket: kakaoTicket, name: name }).then(res => {
+        btn.disabled = false; btn.textContent = '가입 신청하기';
+        if (res && res.success && res.token) { kakaoTicket = null; loginSuccess(res); return; }
+        if (res && (res.code === 'PENDING' || res.code === 'REJECTED')) { kakaoTicket = null; showPending(res); return; }
+        if (!ticketLost(res)) err.textContent = (res && res.message) || '신청하지 못했어요.';
+      }).catch(() => { btn.disabled = false; btn.textContent = '가입 신청하기'; err.textContent = '서버에 연결하지 못했어요.'; });
+    }
+
+    /* ===== 운영자: 가입 승인 ===== */
+    function adminLoad() {
+      const box = $('adminBox'); if (!box) return;
+      box.innerHTML = '<p class="sheet-hint">불러오는 중…</p>';
+      apiCall('adminList', {}).then(res => {
+        if (!res || !res.success) { box.innerHTML = '<p class="sheet-hint">목록을 불러오지 못했어요.</p>'; return; }
+        if (!res.pending.length) { box.innerHTML = '<p class="sheet-hint">기다리는 가입 신청이 없어요.</p>'; return; }
+        const opts = res.accounts.map(a => `<option value="${esc(a.username)}">${esc(a.name)} (${esc(a.username)})</option>`).join('');
+        box.innerHTML = res.pending.map(p => `<div class="adm-item" data-u="${esc(p.username)}">
+            <div class="adm-name"><b>${esc(p.name || '이름 없음')}</b><span>${p.at ? shortDate(p.at) + ' 신청 · ' : ''}카카오</span></div>
+            <div class="adm-acts">
+              <button class="btn-primary" onclick="adminDecide(this, 'approve')">승인</button>
+              <button class="btn-ghost" style="color:#B91C1C; border-color:#FCA5A5" onclick="adminDecide(this, 'reject')">거절</button>
+            </div>
+            ${opts ? `<div class="adm-merge"><label>예전 계정 주인이면 합치기</label><div class="join-row"><select aria-label="합칠 기존 계정"><option value="">기존 계정 고르기</option>${opts}</select><button class="btn-ghost" onclick="adminDecide(this, 'merge')">합치기</button></div></div>` : ''}
+          </div>`).join('');
+        hideIcons(box);
+      }).catch(() => { box.innerHTML = '<p class="sheet-hint">네트워크 오류로 불러오지 못했어요.</p>'; });
+    }
+    function adminDecide(btn, decision) {
+      const item = btn.closest('.adm-item'), u = item.dataset.u;
+      const body = { username: u, decision: decision };
+      if (decision === 'merge') { body.target = item.querySelector('select').value; if (!body.target) { showToast('합칠 기존 계정을 골라주세요.', true); return; } }
+      const go = () => {
+        item.querySelectorAll('button').forEach(b => b.disabled = true);
+        apiCall('adminDecide', body).then(res => {
+          if (res && res.success) { showToast({ approve: '승인했어요', reject: '거절했어요', merge: '기존 계정과 합쳤어요' }[decision]); if (me) me.pending = Math.max(0, (me.pending || 1) - 1); renderAdminBadge(); adminLoad(); }
+          else { item.querySelectorAll('button').forEach(b => b.disabled = false); showToast((res && res.message) || '처리하지 못했어요', true); }
+        }).catch(() => { item.querySelectorAll('button').forEach(b => b.disabled = false); showToast('네트워크 오류', true); });
+      };
+      if (decision === 'reject') askConfirm({ title: '가입을 거절할까요?', msg: '거절하면 이 사람은 카카오로 들어올 수 없어요.', ok: '거절', cancel: '취소' }).then(ok => { if (ok) go(); });
+      else go();
+    }
+    function renderAdminBadge() {
+      const n = me && me.admin ? (me.pending || 0) : 0, el = $('adminNotice');
+      if (!el) return;
+      el.hidden = !n;
+      if (n) el.innerHTML = `<i class="fas fa-user-plus"></i> 가입 승인 요청 <b>${n}건</b> <span>확인하기 ›</span>`;
+      hideIcons(el);
     }
 
     function resetLoginUi() {
-      $('btnLogin').innerHTML = '로그인'; $('btnLogin').disabled = false;
+      showLoginPanel('loginPanel');
       $('loading').style.display = 'none';
       const ls = $('login-screen'); ls.style.display = 'flex'; ls.style.opacity = '1';
       $('app-container').style.display = 'none';
@@ -1355,7 +1377,6 @@
     function logout() {
       const go = () => {
         clearSession();
-        $('loginId').value = ''; $('loginPw').value = '';
         resetLoginUi();
         showToast('안전하게 로그아웃 되었습니다.');
       };
@@ -2268,6 +2289,7 @@
     function applySync(res, silent) {
       const prevIds = new Set(entries.map(e => e.id));
       me = res.me; group = res.group || null; entries = res.entries || [];
+      renderAdminBadge();
       syncRev = res.rev || syncRev;
       lastSyncAt = Date.now();
       if (!silent && hasSynced && !sheetStack.length) {
@@ -3167,14 +3189,16 @@
       const account = `
         <div class="sheet-section">
           <h3>계정</h3>
-          <p class="sheet-hint" style="margin-top:2px">${esc(me ? me.name : '')}${me ? (me.kakaoOnly ? ' (카카오 계정)' : ' (' + esc(me.username) + ')') : ''} 로그인 중</p>
-          <div class="kk-row">
-            <span><svg class="kk-sym dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2C6.6 3.2 2.2 6.6 2.2 10.8c0 2.7 1.8 5.1 4.6 6.4l-1 3.6c-.1.3.3.6.6.4l4.2-2.8c.5.1 1 .1 1.4.1 5.4 0 9.8-3.4 9.8-7.7S17.4 3.2 12 3.2z"/></svg> 카카오 로그인 ${me && me.kakao ? '<b class="kk-on">연결됨</b>' : '<b class="kk-off">연결 안 됨</b>'}</span>
-            ${me && me.kakaoOnly ? '' : (me && me.kakao ? '<button class="btn-ghost" onclick="kakaoUnlink()">해제</button>' : '<button class="btn-kakao small" onclick="kakaoStart(\'link\')">연결하기</button>')}
-          </div>
-          ${me && !me.kakao ? '<p class="sheet-hint">연결해 두면 다음부터 비밀번호 없이 카카오로 로그인할 수 있어요.</p>' : ''}
+          <p class="sheet-hint" style="margin-top:2px">${esc(me ? me.name : '')}${me && me.kakao ? ' · 카카오' : ''} 로그인 중</p>
+          ${me && !me.kakao ? `<div class="kk-row"><span>카카오 연결이 필요해요</span><button class="btn-kakao small" onclick="kakaoStart('link')">카카오 연결</button></div><p class="sheet-hint">이제 카카오로만 로그인할 수 있어요. 지금 연결해 두면 다음에도 이 계정으로 들어와요.</p>` : ''}
           <div class="sheet-row" style="margin-top:10px"><button class="btn-ghost" onclick="logout()"><i class="fas fa-right-from-bracket"></i> 로그아웃</button></div>
         </div>`;
+      const adminSec = me && me.admin ? `
+        <div class="sheet-section">
+          <h3>가입 승인 <span class="adm-count">${me.pending ? me.pending + '건 대기' : ''}</span></h3>
+          <p class="sheet-hint" style="margin-top:2px">카카오로 가입 신청한 사람이에요. 예전 아이디를 쓰던 가족이면 '합치기'를 하면 기록이 그대로 이어져요.</p>
+          <div id="adminBox"></div>
+        </div>` : '';
       if (!group) {
         b.innerHTML = `
           ${reason === 'entry' ? '<p class="sheet-hint" style="margin:0 0 14px; padding:12px; border-radius:12px; background:#FFFCF0; border:1px solid #E9D48A; color:#374151">기록은 가족 그룹 안에 저장돼요. 혼자 쓰셔도 그룹을 먼저 만들어 주세요.</p>' : ''}
@@ -3193,7 +3217,7 @@
             <input type="text" id="famName" maxlength="20" placeholder="예: 우리집" autocomplete="off">
             <div class="sheet-row"><button class="btn-ghost" id="famCreateBtn" onclick="createGroup()">그룹 만들기</button></div>
           </div>
-          ${account}`;
+          ${adminSec}${account}`;
       } else {
         b.innerHTML = `
           <div class="sheet-section">
@@ -3205,12 +3229,13 @@
               <div class="invite-code" aria-label="초대 코드 ${esc(group.inviteCode.split('').join(' '))}">${esc(group.inviteCode)}</div>
               <div class="sheet-row" style="margin-top:0"><button class="btn-ghost" onclick="copyInvite()"><i class="far fa-copy"></i> 복사</button><button class="btn-primary" onclick="shareInvite()"><i class="fas fa-share-nodes"></i> 공유</button></div>
             </div>
-            <p class="sheet-hint">가족이 로그인 화면의 <b>회원가입</b>이나 <b>카카오 로그인</b>에서 이 코드를 넣으면 바로 이 그룹으로 가입돼요. 이미 계정이 있으면 홈의 <b>초대 코드</b> 칸에 입력하면 됩니다. 같은 그룹이면 서로의 고정지출도 볼 수 있어요(수정은 본인만).</p>
+            <p class="sheet-hint">가족이 로그인한 뒤 설정의 <b>초대 코드로 참여</b>(또는 홈의 초대 코드 칸)에 이 코드를 넣으면 이 그룹에 들어와요. 같은 그룹이면 서로의 고정지출도 볼 수 있어요(수정은 본인만).</p>
             <div class="sheet-row"><button class="btn-ghost" style="color:#B91C1C; border-color:#FCA5A5" onclick="leaveGroup()">그룹 나가기</button></div>
           </div>
-          ${account}`;
+          ${adminSec}${account}`;
       }
       hideIcons(b);
+      if (me && me.admin) adminLoad();
     }
     function afterGroupChange() {
       return syncNow({ force: true }).then(() => { renderFamilyBody(); renderHousehold(); });
