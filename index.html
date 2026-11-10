@@ -762,6 +762,20 @@
     .adm-merge { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #E2E8F0; }
     .adm-merge label { font-size: 12.5px; color: #475569; font-weight: 600; margin: 0 0 6px; display: block; }
     .adm-merge select { flex: 1; min-height: 42px; border-radius: 10px; border: 1px solid #CBD5E1; padding: 0 10px; font-family: inherit; font-size: 14px; background: #fff; min-width: 0; }
+    .auto-sec h3 { font-size: 18px; }
+    .auto-lead { font-size: 16px; line-height: 1.6; color: #334155; margin: 6px 0 4px; }
+    .auto-lead small { font-size: 13.5px; color: #64748B; }
+    .auto-ok, .auto-wait { font-size: 15px; margin: 8px 0 0; padding: 10px 12px; border-radius: 10px; }
+    .auto-ok { background: #ECFDF5; color: #065F46; } .auto-wait { background: #FFFCF0; color: #713F12; }
+    .auto-steps { list-style: none; margin: 14px 0 6px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .auto-steps li { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 14px; background: #F8FAFC; border: 1px solid #E2E8F0; }
+    .as-num { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: #0B192C; color: #fff; font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+    .as-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .as-body > b { font-size: 17px; color: #0F172A; }
+    .as-body > span { font-size: 15px; line-height: 1.55; color: #475569; }
+    .as-btn { margin-top: 6px; min-height: 52px; border-radius: 12px; border: none; background: #1E3A8A; color: #fff; font-size: 17px; font-weight: 800; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+    .as-btn.ghost { background: #fff; color: #1E3A8A; border: 2px solid #1E3A8A; }
+    .as-btn:disabled { opacity: 0.7; }
     .auto-tag { display: inline-block; font-size: 10.5px; font-weight: 800; color: #1E3A8A; background: #EEF2F9; border: 1px solid #C9D3E6; border-radius: 6px; padding: 0 5px; margin-right: 5px; line-height: 16px; vertical-align: 1px; }
     .auto-state { font-size: 12px; font-weight: 700; color: #64748B; background: #F1F5F9; border-radius: 10px; padding: 2px 8px; margin-left: 6px; vertical-align: 2px; }
     .auto-state.on { color: #047857; background: #ECFDF5; }
@@ -3299,60 +3313,126 @@
     function isAutoMemo(m) { return typeof m === 'string' && m.indexOf('[자동] ') === 0; }
     function cleanMemo(m) { return isAutoMemo(m) ? m.slice(5) : (m || ''); }
 
-    /* ===== 카드 알림 자동 기록 ===== */
+    /* ===== 카드 알림 자동 기록 (MacroDroid 설정 파일 한 번에 받기) ===== */
     let autoNewKey = null;
+    const MACRODROID_STORE = 'https://play.google.com/store/apps/details?id=com.arlosoft.macrodroid';
+    const CARD_APPS = [['KB Pay', 'com.kbcard.cxh.appcard']];
     function autoUrl(k) { return SCRIPT_URL + '?action=tx&key=' + k; }
+    function rndLong() { let d = String(1 + Math.floor(Math.random() * 8)); for (let i = 0; i < 17; i++) d += Math.floor(Math.random() * 10); return '-' + d; }
+    // MacroDroid 가져오기용 매크로 파일 (알림 수신 → HTTP POST)
+    function buildMacro(key) {
+      const m = {
+        macro: {
+          aiGenerated: 0, breakpoints: [], disabledTimestamp: 0, exportedActionBlocks: [], forceEvenIfNotEnabledTimestamp: 0,
+          isActionBlock: false, isExtra: false, isFavourite: false, lastEditedTimestamp: Date.now(), localVariables: [], localVarsAlphabetical: true,
+          m_GUID: '__G__', m_category: '스마트 지출', m_constraintList: [], m_description: '카드 승인 알림을 스마트 지출 가계부에 자동으로 기록합니다.',
+          m_descriptionOpen: false, m_enabled: true, m_excludeLog: false, m_headingColor: 0, m_isOrCondition: false, m_name: '스마트 지출 자동기록',
+          m_triggerList: [{
+            enableRegex: false, ignoreCase: true,
+            m_applicationNameList: CARD_APPS.map(x => x[0]), m_packageNameList: CARD_APPS.map(x => x[1]),
+            m_exactMatch: false, m_excludeApps: false, m_excludes: false, m_ignoreOngoing: true, m_option: 0, m_soundOption: 0, m_supressMultiples: false,
+            m_textContent: '', matchOptionMessage: 0, matchOptionTitle: 0, separateTitleAndMessage: false, disableLogging: false,
+            m_SIGUID: '__S1__', m_classType: 'NotificationTrigger', m_comment: '', m_constraintList: [], m_isDisabled: false, m_isOrCondition: false
+          }],
+          m_actionList: [{
+            requestConfig: {
+              allFilesAccessPath: '', allowAnyCertificate: false, basicAuthEnabled: false, basicAuthPassword: '', basicAuthUsername: '', blockNextAction: false,
+              clientCertEnabled: false, clientCertKeyStoreDisplayName: '', clientCertKeyStoreUri: '', clientCertPassword: '',
+              contentBodyDynamicFileName: '', contentBodyFileDisplayName: '', contentBodyFileUri: '', contentBodyFolderDisplayName: '', contentBodyFolderUri: '',
+              contentBodySource: 0, contentBodyText: '{notification}', contentType: 'text/plain', followRedirects: false, headerParams: [], localFileUri: '',
+              prettifyJson: false, proxyEnabled: false, proxyHost: '', proxyPort: 8080, proxyType: 0,
+              queryParams: [{ paramName: 'action', paramValue: 'tx' }, { paramName: 'key', paramValue: key }],
+              requestTimeOutSeconds: 30, requestType: 1, responseVariableName: '', saveResponseAllFilesAccessPath: '', saveResponseFileName: '',
+              saveResponseFolderPathDisplayName: '', saveResponseFolderPathUri: '', saveResponseType: 0, saveResponseUseAllFilesAccess: false,
+              saveReturnCodeToVariable: false, saveReturnHeadersToVariable: false, urlToOpen: SCRIPT_URL,
+              useAllFilesAccess: false, useLocalFileUri: false, useStaticContentBodyFile: true
+            },
+            disableLogging: false, m_SIGUID: '__S2__', m_classType: 'HttpRequestAction', m_comment: '', m_constraintList: [], m_isDisabled: false, m_isOrCondition: false
+          }]
+        },
+        macroExportVersion: 1
+      };
+      return JSON.stringify(m, null, 2).replace('"__G__"', rndLong()).replace('"__S1__"', rndLong()).replace('"__S2__"', rndLong());
+    }
+    function downloadMacro(key) {
+      const blob = new Blob([buildMacro(key)], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = 'smart-expense-auto.macro'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
     function autoSection() {
       if (!me) return '';
       const on = !!me.auto;
       const last = me.autoLast ? new Date(me.autoLast) : null;
-      const lastTxt = last ? `${last.getMonth() + 1}/${last.getDate()} ${String(last.getHours()).padStart(2, '0')}:${String(last.getMinutes()).padStart(2, '0')}` : '아직 없음';
-      const keyBox = autoNewKey ? `
-        <div class="auto-key">
-          <p class="auto-warn"><i class="fas fa-key"></i> 아래 주소는 지금만 보여요. 복사해서 MacroDroid에 붙여 넣으세요. 남에게 알려주지 마세요.</p>
-          <div class="auto-url" id="autoUrlText">${esc(autoUrl(autoNewKey))}</div>
-          <button class="btn-primary" style="width:100%; margin-top:8px" onclick="copyAutoUrl()"><i class="fas fa-copy"></i> 주소 복사</button>
-        </div>` : '';
+      const lastTxt = last ? `${last.getMonth() + 1}월 ${last.getDate()}일 ${String(last.getHours()).padStart(2, '0')}:${String(last.getMinutes()).padStart(2, '0')}` : '';
       return `
-        <div class="sheet-section">
-          <h3>카드 알림 자동 기록 <span class="auto-state ${on ? 'on' : ''}">${on ? '켜짐' : '꺼짐'}</span></h3>
-          <p class="sheet-hint" style="margin-top:2px">카드사 앱(KB Pay 등) 승인 알림이 오면 이달 지출에 자동으로 기록돼요. 안드로이드폰 + MacroDroid 앱이 필요해요.</p>
-          ${on ? `<p class="sheet-hint">마지막 자동 기록: <b>${lastTxt}</b></p>` : ''}
-          ${keyBox}
-          <div class="sheet-row" style="margin-top:10px; gap:8px">
-            ${on ? `<button class="btn-ghost" onclick="autoKeyMake(true)"><i class="fas fa-rotate"></i> 주소 다시 만들기</button><button class="btn-ghost" style="color:#B91C1C" onclick="autoKeyOff()">끄기</button>`
-                 : `<button class="btn-primary" onclick="autoKeyMake(false)"><i class="fas fa-bolt"></i> 자동 기록 켜기</button>`}
-          </div>
-          <details class="auto-guide"${autoNewKey ? ' open' : ''}>
-            <summary>MacroDroid 설정 방법</summary>
+        <div class="sheet-section auto-sec">
+          <h3>카드 쓰면 자동 기록 <span class="auto-state ${on ? 'on' : ''}">${on ? '켜짐' : '꺼짐'}</span></h3>
+          <p class="auto-lead">KB Pay에서 결제 알림이 오면, 가계부에 <b>저절로</b> 적혀요.<br><small>안드로이드폰에서만 돼요.</small></p>
+          ${on && lastTxt ? `<p class="auto-ok"><i class="fas fa-circle-check"></i> 마지막 자동 기록: <b>${lastTxt}</b></p>` : ''}
+          ${on && !lastTxt ? `<p class="auto-wait"><i class="fas fa-hourglass-half"></i> 설정이 끝났다면 카드를 한 번 써보세요. 여기에 기록 시간이 나와요.</p>` : ''}
+          <ol class="auto-steps">
+            <li>
+              <div class="as-num">1</div>
+              <div class="as-body"><b>MacroDroid 앱 설치</b><span>이미 깔려 있으면 건너뛰세요.</span>
+                <a class="as-btn ghost" href="${MACRODROID_STORE}" target="_blank" rel="noopener"><i class="fab fa-google-play"></i> 설치하러 가기</a></div>
+            </li>
+            <li>
+              <div class="as-num">2</div>
+              <div class="as-body"><b>설정 파일 받기</b><span>버튼을 누르면 파일이 폰에 저장돼요.</span>
+                <button class="as-btn" id="btnMacro" onclick="autoGetFile()"><i class="fas fa-download"></i> 설정 파일 받기</button></div>
+            </li>
+            <li>
+              <div class="as-num">3</div>
+              <div class="as-body"><b>받은 파일 열기</b><span>화면 위에서 아래로 내려 <b>'smart-expense-auto.macro'</b> 알림을 누르고, <b>MacroDroid</b>를 고른 뒤 <b>가져오기</b>를 누르세요.</span></div>
+            </li>
+            <li>
+              <div class="as-num">4</div>
+              <div class="as-body"><b>'허용' 누르기</b><span>MacroDroid가 <b>알림 접근 권한</b>을 물어보면 <b>MacroDroid</b>를 켜고 <b>허용</b>을 누르세요. 이걸로 끝이에요.</span></div>
+            </li>
+          </ol>
+          <details class="auto-guide">
+            <summary>파일이 안 열릴 때</summary>
             <ol>
-              <li>Play 스토어에서 <b>MacroDroid</b>를 설치하고 엽니다.</li>
-              <li><b>매크로 추가(+)</b> → 트리거 <b>알림</b> → <b>알림 수신</b>을 고릅니다. 알림 접근 권한을 허용해 주세요.</li>
-              <li>앱 선택에서 <b>KB Pay</b>를 고르고, 텍스트 조건은 <b>'원' 포함</b>으로 둡니다.</li>
-              <li>액션 <b>웹 상호작용</b> → <b>HTTP 요청</b>: 방식 <b>POST</b>, URL에 위에서 복사한 주소를 붙여 넣습니다.</li>
-              <li>본문(Body)에 매직 텍스트 <b>[notification]</b>(알림 텍스트)을 넣고, 콘텐츠 유형은 <b>text/plain</b>으로 합니다.</li>
-              <li>저장하고 이름을 <b>스마트 지출 자동기록</b>으로 정하면 끝이에요. 카드를 한 번 쓰면 이달 기록에 '자동'으로 들어와요.</li>
+              <li>MacroDroid 앱을 엽니다.</li>
+              <li>왼쪽 위 <b>메뉴(≡)</b> → <b>내보내기/가져오기</b> → <b>가져오기</b>를 누릅니다.</li>
+              <li><b>Download(다운로드)</b> 폴더의 <b>smart-expense-auto.macro</b>를 고르면 됩니다.</li>
             </ol>
-            <p class="sheet-hint">같은 결제의 알림이 여러 개 와도 한 번만 기록되고, 승인취소 알림이 오면 기록이 지워져요.</p>
           </details>
-          <div class="auto-test">
-            <label for="autoTestText">알림 글자 시험해보기</label>
-            <textarea id="autoTestText" rows="2" placeholder="[KB Pay 사용 알림] 신용 0011 11/10 14:02 3,500원 아마노코리아본사 승인"></textarea>
-            <button class="btn-ghost" onclick="autoTry()">어떻게 기록되는지 보기</button>
-            <p class="sheet-hint" id="autoTestOut" aria-live="polite"></p>
-          </div>
+          <details class="auto-guide">
+            <summary>고급: 직접 설정 · 시험해보기 · 끄기</summary>
+            ${autoNewKey ? `<div class="auto-key"><p class="auto-warn"><i class="fas fa-key"></i> 직접 설정할 때 쓰는 주소예요. 남에게 알려주지 마세요.</p>
+              <div class="auto-url">${esc(autoUrl(autoNewKey))}</div>
+              <button class="btn-ghost" style="width:100%; margin-top:8px" onclick="copyAutoUrl()"><i class="fas fa-copy"></i> 주소 복사</button></div>` : ''}
+            <p class="sheet-hint">직접 만들 때: 트리거 <b>알림 수신</b>(KB Pay) → 액션 <b>HTTP 요청</b>, POST, 위 주소, 본문 <b>{notification}</b>, text/plain.</p>
+            <div class="auto-test">
+              <label for="autoTestText">알림 글자 시험해보기</label>
+              <textarea id="autoTestText" rows="2" placeholder="[KB Pay 사용 알림] 신용 0011 11/10 14:02 3,500원 아마노코리아본사 승인"></textarea>
+              <button class="btn-ghost" onclick="autoTry()">어떻게 기록되는지 보기</button>
+              <p class="sheet-hint" id="autoTestOut" aria-live="polite"></p>
+            </div>
+            ${on ? `<button class="btn-ghost" style="width:100%; margin-top:10px; color:#B91C1C" onclick="autoKeyOff()">자동 기록 끄기</button>` : ''}
+          </details>
         </div>`;
     }
-    function autoKeyMake(again) {
-      const go = () => apiCall('autoKeyCreate', {}).then(res => {
-        if (res && res.success && res.key) { autoNewKey = res.key; if (me) me.auto = true; renderFamilyBody(); showToast(again ? '새 주소를 만들었어요. MacroDroid의 주소도 바꿔주세요' : '자동 기록을 켰어요. 주소를 복사해 MacroDroid에 넣어주세요'); }
-        else showToast((res && res.message) || '만들지 못했어요', true);
-      }).catch(() => showToast('네트워크 오류', true));
-      if (again) askConfirm({ title: '주소를 다시 만들까요?', msg: '예전 주소는 바로 못 쓰게 돼요. MacroDroid에도 새 주소를 넣어야 해요.', ok: '다시 만들기', cancel: '취소' }).then(ok => { if (ok) go(); });
+    // 설정 파일 받기: 새 개인 주소를 만들고 그 주소가 들어간 파일을 내려받음
+    function autoGetFile() {
+      const go = () => {
+        const btn = $('btnMacro'); if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 만드는 중...'; }
+        apiCall('autoKeyCreate', {}).then(res => {
+          if (res && res.success && res.key) {
+            autoNewKey = res.key; if (me) me.auto = true;
+            downloadMacro(res.key);
+            renderFamilyBody();
+            showToast('설정 파일을 받았어요. 이제 3번처럼 파일을 열어주세요');
+          } else { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-download"></i> 설정 파일 받기'; } showToast((res && res.message) || '파일을 만들지 못했어요', true); }
+        }).catch(() => { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-download"></i> 설정 파일 받기'; } showToast('인터넷 연결을 확인해주세요', true); });
+      };
+      if (me && me.auto) askConfirm({ title: '설정 파일을 새로 받을까요?', msg: '새 파일을 받으면 예전에 받은 파일은 더 이상 작동하지 않아요. MacroDroid에 새 파일을 다시 가져와 주세요.', ok: '새로 받기', cancel: '취소' }).then(ok => { if (ok) go(); });
       else go();
     }
     function autoKeyOff() {
-      askConfirm({ title: '자동 기록을 끌까요?', msg: '지금 쓰는 주소로는 더 이상 기록되지 않아요.', ok: '끄기', cancel: '취소' }).then(ok => {
+      askConfirm({ title: '자동 기록을 끌까요?', msg: '카드 알림이 와도 더 이상 기록되지 않아요.', ok: '끄기', cancel: '취소' }).then(ok => {
         if (!ok) return;
         apiCall('autoKeyRevoke', {}).then(res => {
           if (res && res.success) { autoNewKey = null; if (me) me.auto = false; renderFamilyBody(); showToast('자동 기록을 껐어요'); }
