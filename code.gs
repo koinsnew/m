@@ -4,7 +4,7 @@
 //  · 모든 요청은 POST(JSON). 로그인 후 받은 '토큰'으로 인증한다.
 //    (비밀번호는 주소창에 실리지 않고, 시트에는 해시로 저장된다)
 //  · 시트 구성
-//      Users    : 아이디 | 비밀번호(해시) | 이름 | 그룹ID | 카카오ID | 가입시각 | 상태
+//      Users    : 아이디 | 비밀번호(해시) | 이름 | 그룹ID | 카카오ID | 가입시각 | 상태 | 자동기록키(해시)
 //                 ← 로그인은 카카오만. 새 가입은 '대기'로 들어오고 운영자가 앱에서 승인
 //                   (상태: 빈칸=사용 중, pending=승인 대기, rejected=거절)
 //      Data     : 아이디 | 고정지출 데이터(JSON) | 요약(JSON) | 수정시각
@@ -42,7 +42,7 @@ function doGet(e) {
     if (!p.action || p.action === 'ping') {
       result = { success: true, message: 'API 정상 작동 중입니다.' };
     } else if (p.action === 'tx') {
-      result = handleSms(p.text || p.message || '', p.username || '', p.key || '');
+      result = withLock(function () { return autoTx(p.key || '', p.text || p.message || ''); });
     } else {
       result = { success: false, code: 'OUTDATED', message: '화면이 업데이트되었습니다. 새로고침 해주세요.' };
     }
@@ -71,8 +71,9 @@ function doPost(e) {
       const action = p.action || body.action;
 
       if (action === 'tx') {
+        // 폰 자동화: 주소에 ?action=tx&key=개인키, 본문에 알림 글자 그대로 (또는 JSON {key, text})
         const smsText = body.text || body.message || (p.action ? raw : '');
-        result = handleSms(smsText, body.username || p.username || '', body.key || p.key || '');
+        result = withLock(function () { return autoTx(body.key || p.key || '', smsText); });
       } else {
         result = handleApi(action, body);
       }
@@ -119,7 +120,9 @@ function handleApi(action, body) {
     case 'kakaoLink':     return kakaoLink(user, body);
     case 'adminList':     return adminList(user);
     case 'adminDecide':   return withLock(function () { return adminDecide(user, body); });
-    case 'txList':        return { success: true, list: getRecentTransactions(user, body.limit) };
+    case 'autoKeyCreate': return withLock(function () { return autoKeySet(user, true); });
+    case 'autoKeyRevoke': return withLock(function () { return autoKeySet(user, false); });
+    case 'autoTest':      return autoTest(user, body);
     default:              return { success: false, message: '알 수 없는 요청입니다.' };
   }
 }
@@ -226,7 +229,8 @@ function getUserInfo(username) {
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(username)) {
       return { sheet: sheet, row: i + 1, username: String(data[i][0]), name: data[i][2] || String(data[i][0]), groupId: String(data[i][3] || ''),
-        kakaoId: String(data[i][4] || ''), kakaoOnly: String(data[i][1] || '').indexOf('kakao$') === 0, status: String(data[i][6] || '') };
+        kakaoId: String(data[i][4] || ''), kakaoOnly: String(data[i][1] || '').indexOf('kakao$') === 0, status: String(data[i][6] || ''),
+        autoKey: String(data[i][7] || '') };
     }
   }
   return null;
@@ -518,7 +522,8 @@ function syncAll(user, body) {
     return { success: true, unchanged: true, rev: combined, serverTime: Date.now() };
   }
 
-  const out = { success: true, rev: combined, serverTime: Date.now(), ym: ym, me: { username: me.username, name: me.name, groupId: me.groupId, kakao: !!me.kakaoId, kakaoOnly: !!me.kakaoOnly, admin: isAdmin(me), pending: isAdmin(me) ? pendingCount() : 0 }, group: null, entries: [] };
+  const out = { success: true, rev: combined, serverTime: Date.now(), ym: ym, me: { username: me.username, name: me.name, groupId: me.groupId, kakao: !!me.kakaoId, kakaoOnly: !!me.kakaoOnly, admin: isAdmin(me), pending: isAdmin(me) ? pendingCount() : 0,
+      auto: !!me.autoKey, autoLast: Number(CacheService.getScriptCache().get('al_' + me.username) || 0) || null }, group: null, entries: [] };
 
   const dataSheet = getSS().getSheetByName('Data');
   const mine = dataSheet ? findDataRow(dataSheet, user) : null;
@@ -606,144 +611,147 @@ function getCardBenefit(query) {
 }
 
 // =============================================================
-//  카드 문자 자동 기록
-//  · 폰 자동화 앱(안드로이드 MacroDroid/Tasker, 아이폰 단축어)에서
-//    카드 승인 문자 원문을 이 웹앱 주소로 POST 하면 자동 파싱·기록됨
-//    body 예시: { "action":"tx", "username":"내아이디", "text":"문자원문" }
-//  · 또는 scanCardEmails()에 시간 트리거를 걸어 메일에서 자동 수집
+//  카드 알림 자동 기록
+//  · 폰 자동화 앱(안드로이드 MacroDroid)이 카드사 앱 푸시·문자·카톡 알림 글자를
+//    https://…/exec?action=tx&key=개인키  로 POST 하면 이달 지출에 자동 기록
+//  · 개인키는 앱 설정에서 만들고, 시트에는 해시만 저장(Users H열)
+//  · 같은 결제의 알림이 여러 개 와도 한 번만 기록, '취소' 알림은 원래 기록을 지움
 // =============================================================
+const AUTO_HEADERS = ['dedupe', 'owner', 'entryId', 'status', 'at', 'merchant', 'amount', 'raw'];
 
-// 카드 승인 문자 파싱 (우리카드 등 일반 형식 대응)
-function parseCardSms(text) {
-  if (!text) return null;
-  const t = text.toString().replace(/\r/g, '');
-  const lines = t.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l; });
+function sha256hex(s) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(s), Utilities.Charset.UTF_8)
+    .map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
+}
+function pad2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
 
-  // 카드사
-  let issuer = '';
-  const issuerM = t.match(/(우리|삼성|신한|현대|국민|KB|롯데|하나|농협|NH|BC|씨티|카카오|토스)\s*카드/);
-  if (issuerM) issuer = issuerM[0].replace(/\s+/g, '');
-
-  // 카드 끝자리 (괄호 안 숫자)
-  let last4 = '';
-  const l4 = t.match(/\((\d{3,4})\)/);
-  if (l4) last4 = l4[1];
-
-  // 승인 / 취소 / 거절
-  let type = '승인';
-  if (/취소/.test(t)) type = '취소';
-  else if (/거절|실패|거부/.test(t)) type = '거절';
-
-  // 결제 방식
-  let pay = '';
-  const inst = t.match(/할부\s*([0-9]+)\s*개월/) || t.match(/([0-9]+)\s*개월/);
-  if (/일시불/.test(t)) pay = '일시불';
-  else if (inst) pay = '할부 ' + inst[1] + '개월';
-
-  // 금액 (총누적/누적 뒤의 금액은 제외 → 첫 거래금액만)
-  let amount = 0;
-  const re = /([0-9][0-9,]*)\s*원/g;
-  let mm;
-  while ((mm = re.exec(t)) !== null) {
-    const before = t.slice(Math.max(0, mm.index - 6), mm.index);
-    if (/누적/.test(before)) continue;
-    amount = parseInt(mm[1].replace(/,/g, ''), 10);
-    break;
+// 알림 글자 → { cancel, amount, month, day, hh, mi, last4, merchant }
+function parseCardAlert(text) {
+  let t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!t) return null;
+  if (/거절|실패|거부/.test(t)) return { skip: '거절·실패 알림' };
+  const cancel = /취소/.test(t);
+  // 금액: 누적·잔여·한도 뒤의 금액은 제외
+  let amount = 0, amtStr = '';
+  const re = /([0-9][0-9,]*)\s*원/g; let m;
+  while ((m = re.exec(t)) !== null) {
+    if (/(누적|잔여|한도|잔액)\s*[:：]?\s*$/.test(t.slice(Math.max(0, m.index - 8), m.index))) continue;
+    amount = parseInt(m[1].replace(/,/g, ''), 10); amtStr = m[0]; break;
   }
-
-  // 누적 금액
-  let total = 0;
-  const totalM = t.match(/누적\s*([0-9,]+)\s*원/);
-  if (totalM) total = parseInt(totalM[1].replace(/,/g, ''), 10);
-
-  // 날짜/시간 (MM/DD HH:mm) — 연도 없으면 올해로
-  let datetime = '';
-  const dm = t.match(/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/);
-  if (dm) {
-    const yr = new Date().getFullYear();
-    datetime = yr + '-' + pad2(dm[1]) + '-' + pad2(dm[2]) + ' ' + pad2(dm[3]) + ':' + dm[4];
-  }
-
-  // 가맹점 (보통 마지막 줄, 누적 줄이면 그 앞 줄)
-  let merchant = '';
-  if (lines.length) {
-    let last = lines[lines.length - 1];
-    if (/누적/.test(last) && lines.length >= 2) last = lines[lines.length - 2];
-    merchant = last;
-  }
-
-  if (!amount && !merchant) return null;
+  if (!amount) return null;
+  const dm = t.match(/(\d{1,2})\/(\d{1,2})\s*(\d{1,2}):(\d{2})/);
+  const l4 = t.match(/(?:신용|체크|카드)\s*\(?(\d{4})\)?/) || t.match(/(\d{4})\s*(?:승인|취소)/) || t.match(/\((\d{4})\)/);
+  // 가맹점: 알려진 조각을 지우고 남는 글자
+  let s = t.replace(/(누적|잔여|한도|잔액).*$/, '').replace(/(\.\.\.|…).*$/, '').replace(/\[[^\]]*\]/g, ' ');
+  if (dm) s = s.replace(dm[0], ' ');
+  s = s.replace(amtStr, ' ')
+    .replace(/[가-힣A-Za-z]*카드\s*\(?\d{0,4}\)?/g, ' ')
+    .replace(/(신용|체크)\s*\d{4}/g, ' ')
+    .replace(/[가-힣]{0,2}\*[가-힣]{0,2}\s*님?/g, ' ')
+    .replace(/일시불|\d+\s*개월|할부|무이자/g, ' ')
+    .replace(/(승인|취소)(완료|되었습니다|됨)?/g, ' ')
+    .replace(/KB\s*Pay|사용\s*알림|Web발신/gi, ' ')
+    .replace(/\s+/g, ' ').trim();
   return {
-    issuer: issuer, last4: last4, type: type, pay: pay,
-    amount: amount, total: total, datetime: datetime, merchant: merchant, raw: text.toString()
+    cancel: cancel, amount: amount,
+    month: dm ? +dm[1] : 0, day: dm ? +dm[2] : 0, hh: dm ? pad2(dm[3]) : '', mi: dm ? dm[4] : '',
+    last4: l4 ? l4[1] : '', merchant: s.slice(0, 40)
   };
 }
 
-function pad2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
+// 가맹점 이름 → 분류 (앱의 지출 분류에 맞춤)
+const AUTO_CATS = [
+  ['교통', /주유|오일|에너지|SK네트웍스|GS칼텍스|S-?OIL|현대오일|택시|카카오\s*T|코레일|KTX|SRT|지하철|버스|티머니|하이패스|도로공사|주차|파킹|아마노|쏘카|그린카/i],
+  ['장보기', /마트|이마트|홈플러스|롯데마트|코스트코|트레이더스|하나로|농협|킴스클럽|식자재|정육|청과|GS\s*더\s*프레시|노브랜드/i],
+  ['의료', /병원|의원|약국|치과|한의원|안과|피부과|소아과|정형외과|내과|검진|메디/i],
+  ['교육', /학원|교습|서점|교보문고|영풍문고|예스24|알라딘|어린이집|유치원|학교|에듀/i],
+  ['여가', /CGV|메가박스|롯데시네마|넷플릭스|NETFLIX|유튜브|YOUTUBE|디즈니|티빙|웨이브|멜론|스포티파이|골프|볼링|노래|PC방|키즈카페|놀이|여행|호텔|숙박|야놀자|여기어때|에어비앤비|항공/i],
+  ['공과금', /한국전력|한전|도시가스|가스공사|수도|관리비|아파트|SKT|KT\s|LG\s*U|통신|인터넷/i],
+  ['쇼핑', /쿠팡|11번가|G마켓|옥션|SSG|무신사|올리브영|다이소|네이버\s*페이|네이버페이|카카오페이|29CM|지그재그|백화점|아울렛|유니클로|자라|H&M/i],
+  ['식비', /식당|김밥|분식|치킨|피자|버거|맥도날드|롯데리아|KFC|맘스터치|스타벅스|투썸|이디야|메가커피|컴포즈|빽다방|커피|카페|베이커리|파리바게뜨|뚜레쥬르|배달의민족|배민|요기요|쿠팡이츠|편의점|CU|GS25|세븐일레븐|이마트24|국밥|고기|횟집|초밥|스시|면옥|반점|족발|보쌈/i]
+];
+function guessCategory(merchant) {
+  for (let i = 0; i < AUTO_CATS.length; i++) if (AUTO_CATS[i][1].test(merchant)) return AUTO_CATS[i][0];
+  return '기타';
+}
 
-// 파싱 결과를 'Transactions' 시트에 기록
-function saveTransaction(text, username) {
-  const parsed = parseCardSms(text);
-  if (!parsed) return { success: false, message: '문자 형식을 인식하지 못했습니다.' };
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sheet = ss.getSheetByName('Transactions');
-    if (!sheet) {
-      sheet = ss.insertSheet('Transactions');
-      sheet.appendRow(['기록시각', '사용자', '카드사', '카드끝자리', '구분', '결제', '거래일시', '가맹점', '금액', '누적', '원문']);
+function findUserByAutoKey(key) {
+  if (!/^sx_[A-Za-z0-9]{20,40}$/.test(String(key))) return null;
+  const h = sha256hex(key);
+  const sh = getSS().getSheetByName('Users'); if (!sh) return null;
+  const data = sh.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) if (String(data[i][7] || '') === h && !String(data[i][6] || '')) return String(data[i][0]);
+  return null;
+}
+
+function autoKeySet(user, on) {
+  const me = getUserInfo(user);
+  if (!me) return { success: false, message: '계정을 찾을 수 없습니다.' };
+  if (!on) { me.sheet.getRange(me.row, 8).setValue(''); bumpRev(user, me.groupId); return { success: true }; }
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let key = 'sx_';
+  const rnd = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  for (let i = 0; i < 28; i++) key += chars[parseInt(rnd.substr(i * 2, 2), 16) % chars.length];
+  me.sheet.getRange(me.row, 8).setValue(sha256hex(key));
+  bumpRev(user, me.groupId);
+  return { success: true, key: key };
+}
+
+// 테스트: 알림 글자를 넣어보면 어떻게 읽히는지 (기록은 안 함)
+function autoTest(user, body) {
+  const p = parseCardAlert(body.text);
+  if (!p) return { success: false, message: '금액을 찾지 못했어요.' };
+  if (p.skip) return { success: false, message: p.skip + '은 기록하지 않아요.' };
+  return { success: true, parsed: p, category: guessCategory(p.merchant) };
+}
+
+function autoTx(key, text) {
+  const user = findUserByAutoKey(key);
+  if (!user) return { success: false, message: '자동 기록 키가 올바르지 않습니다.' };
+  const cache = CacheService.getScriptCache(), ck = 'ar_' + user;
+  const used = parseInt(cache.get(ck) || '0', 10);
+  if (used >= 200) return { success: false, message: '오늘 자동 기록 한도를 넘었어요.' };
+  cache.put(ck, String(used + 1), 21600);
+  const p = parseCardAlert(text);
+  if (!p) return { success: false, message: '카드 승인 알림이 아니에요.' };
+  if (p.skip) return { success: true, skipped: p.skip };
+  const me = getUserInfo(user);
+  if (!me || !me.groupId) return { success: false, message: '먼저 가족 그룹을 만들거나 참여해주세요.' };
+
+  // 거래 날짜 (연도 없으면 올해, 다음 달 이후로 보이면 작년)
+  const now = new Date(Utilities.formatDate(new Date(), 'Asia/Seoul', "yyyy-MM-dd'T'HH:mm:ss"));
+  let y = now.getFullYear();
+  if (p.month && p.month > now.getMonth() + 2) y -= 1;
+  const date = p.month ? y + '-' + pad2(p.month) + '-' + pad2(p.day) : todayStr();
+  const dedupe = [user, p.last4, date, p.hh + p.mi, p.amount, p.cancel ? 'C' : 'A'].join('|');
+
+  const ss = getSS(), log = ensureSheet(ss, 'AutoTx', AUTO_HEADERS);
+  const rows = log.getDataRange().getValues();
+  for (let i = rows.length - 1; i >= 1; i--) if (String(rows[i][0]) === dedupe) return { success: true, duplicate: true };
+
+  if (p.cancel) {
+    // 같은 카드·같은 금액의 가장 최근 승인 기록을 지움
+    for (let i = rows.length - 1; i >= 1; i--) {
+      const r = rows[i];
+      if (String(r[1]) !== user || String(r[3]) !== 'ok' || Number(r[6]) !== p.amount) continue;
+      const parts = String(r[0]).split('|');
+      if (p.last4 && parts[1] && parts[1] !== p.last4) continue;
+      const del = entrySetDeleted(user, String(r[2]), 1);
+      log.getRange(i + 1, 4).setValue('cancelled');
+      log.appendRow([dedupe, user, String(r[2]), 'cancel', new Date(), p.merchant, p.amount, String(text).slice(0, 300)]);
+      cache.put('al_' + user, String(Date.now()), 21600 * 4);
+      return { success: true, cancelled: !!(del && del.success) };
     }
-    sheet.appendRow([new Date(), username, parsed.issuer, parsed.last4, parsed.type, parsed.pay, parsed.datetime, parsed.merchant, parsed.amount, parsed.total, parsed.raw]);
-    return { success: true, parsed: parsed };
-  } catch (e) {
-    return { success: false, message: e.toString() };
+    log.appendRow([dedupe, user, '', 'cancel-unmatched', new Date(), p.merchant, p.amount, String(text).slice(0, 300)]);
+    return { success: true, cancelled: false };
   }
-}
 
-// 최근 거래내역 조회 (앱에서 표시용)
-function getRecentTransactions(username, limit) {
-  try {
-    limit = parseInt(limit, 10) || 30;
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName('Transactions');
-    if (!sheet) return [];
-    const data = sheet.getDataRange().getValues();
-    const out = [];
-    for (let i = data.length - 1; i >= 1 && out.length < limit; i--) {
-      const r = data[i];
-      if (username && r[1] && r[1] != username) continue;
-      out.push({
-        card: r[2], last4: r[3], type: r[4], pay: r[5],
-        datetime: r[6], merchant: r[7], amount: r[8], total: r[9]
-      });
-    }
-    return out;
-  } catch (e) {
-    return [];
-  }
-}
-
-// (선택) 이메일 경유 자동 수집 — Gmail로 들어온 카드 알림을 파싱해 기록
-//  · 카드사 알림메일 제목/발신자에 맞게 검색어를 조정하세요
-//  · 이 함수에 '시간 기반 트리거'(예: 10분마다)를 걸면 자동 실행됩니다
-function scanCardEmails() {
-  const query = 'from:(cardnoti OR 우리카드 OR 카드) newer_than:1d is:unread';
-  const threads = GmailApp.search(query, 0, 20);
-  threads.forEach(function (th) {
-    th.getMessages().forEach(function (msg) {
-      if (msg.isUnread()) {
-        const body = msg.getPlainBody();
-        saveTransaction(body, '');   // 필요 시 사용자 매핑 로직 추가
-        msg.markRead();
-      }
-    });
-  });
-}
-
-// 폰 자동화(문자 전송) 입구 — 스크립트 속성 TX_KEY 를 설정하면 key 가 일치해야만 기록됨
-function handleSms(text, username, key) {
-  const required = PropertiesService.getScriptProperties().getProperty('TX_KEY');
-  if (required && String(key) !== required) return { success: false, message: '인증 키가 올바르지 않습니다.' };
-  return saveTransaction(text, username);
+  const merchant = p.merchant || '카드 결제';
+  const res = entryAdd(user, { type: 'expense', date: date, category: guessCategory(merchant), amount: p.amount, memo: '[자동] ' + merchant });
+  if (!res.success) return res;
+  log.appendRow([dedupe, user, res.entry.id, 'ok', new Date(), merchant, p.amount, String(text).slice(0, 300)]);
+  cache.put('al_' + user, String(Date.now()), 21600 * 4);
+  return { success: true, recorded: { date: date, amount: p.amount, merchant: merchant, category: res.entry.category } };
 }
 
 
