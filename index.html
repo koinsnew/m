@@ -617,12 +617,12 @@
     /* 하단 내비 */
     .bottom-dock { left: 50%; right: auto; width: 100%; max-width: 560px; transform: translateX(-50%); }
     .bottom-actions { background: #fff; backdrop-filter: none; padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); box-shadow: 0 -6px 18px -8px rgba(0,0,0,0.18); }
-    .nav-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+    .nav-row { display: grid; grid-template-columns: 1fr auto 1fr 1fr; align-items: center; gap: 2px; }
     .nav-btn { min-height: 56px; border: none; background: transparent; color: #475569; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 14px; font-family: inherit; }
     .nav-btn i { font-size: 19px; }
     .nav-btn[aria-current="page"] { color: var(--ht-navy); }
     .nav-btn[aria-current="page"] span { border-bottom: 2px solid var(--ht-gold); padding-bottom: 1px; }
-    .nav-add { width: 132px; min-height: 52px; border: none; border-radius: 26px; background: var(--ht-gold); color: var(--ht-navy); font-size: 16px; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 14px -4px rgba(161,128,24,0.55); font-family: inherit; }
+    .nav-add { width: 112px; min-height: 52px; border: none; border-radius: 26px; background: var(--ht-gold); color: var(--ht-navy); font-size: 16px; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 14px -4px rgba(161,128,24,0.55); font-family: inherit; }
     .nav-add i { font-size: 17px; }
     .nav-add:active, .nav-btn:active { transform: scale(0.96); }
     .edit-row { display: none; gap: 8px; padding: 2px 0; }
@@ -725,6 +725,68 @@
     .perf-line { margin-top: 6px; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
     .perf-line b { color: var(--ink); }
     .perf-ex { color: #64748B; }
+
+    /* ===== 통계 ===== */
+    .st-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 14px; flex-wrap: wrap; }
+    .st-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .st-tab { min-height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid #CBD5E1; background: #fff; color: #334155; font-weight: 700; font-size: 13px; font-family: inherit; cursor: pointer; }
+    .st-tab[aria-pressed="true"] { background: #0B192C; border-color: #0B192C; color: #fff; }
+    .st-save { margin-left: auto; min-height: 40px; padding: 0 14px; border-radius: 20px; border: none; background: #1E3A8A; color: #fff; font-weight: 700; font-size: 13.5px; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+    .st-save:disabled { opacity: 0.7; }
+    .st-body, .st-export { color: #0F172A; font-variant-numeric: tabular-nums; }
+    .st-body > * + * { margin-top: 14px; }
+    .st-head { display: flex; align-items: flex-end; gap: 14px; padding: 2px 2px 0; }
+    .st-mon { font-size: 54px; font-weight: 700; line-height: 0.95; letter-spacing: -2px; color: #0B192C; }
+    .st-mon small { font-size: 18px; font-weight: 600; letter-spacing: 0; margin-left: 2px; }
+    .st-range { font-size: 13px; color: #475569; line-height: 1.5; }
+    .st-range b { color: #0F172A; }
+    .st-box { background: #fff; border-radius: 14px; border: 1px solid #E2E8F0; overflow: hidden; }
+    .st-bar { background: #1E3A8A; color: #fff; font-weight: 700; font-size: 13.5px; text-align: center; padding: 7px 10px; }
+    .st-bar small { font-weight: 500; opacity: 0.85; }
+    .st-dl { margin: 0; padding: 4px 14px 8px; }
+    .st-dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px dotted #CBD5E1; }
+    .st-dl > div:last-child { border-bottom: none; }
+    .st-dl dt { font-size: 13.5px; color: #334155; font-weight: 600; min-width: 0; }
+    .st-dl dt small { display: block; font-size: 11.5px; color: #64748B; font-weight: 500; }
+    .st-dl dd { margin: 0; font-size: 15px; font-weight: 700; white-space: nowrap; }
+    .st-dl dd.inc { color: #1D4ED8; } .st-dl dd.neg { color: #B91C1C; } .st-dl dd.pos { color: #047857; }
+    .st-pdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+    .st-donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px; }
+    .st-donut-wrap canvas { display: block; }
+    .st-legend { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: 1fr; gap: 2px; }
+    .st-legend li { display: grid; grid-template-columns: 10px minmax(56px, 1fr) auto auto; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; }
+    .st-legend i { width: 10px; height: 10px; border-radius: 3px; }
+    .st-legend span { color: #334155; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .st-legend b { font-weight: 700; }
+    .st-legend em { font-style: normal; color: #64748B; font-size: 12px; min-width: 70px; text-align: right; }
+    .st-grid .st-legend { min-width: 0; }
+    .st-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; padding: 10px 10px 4px; text-align: center; }
+    .st-cal b { font-size: 12px; color: #334155; padding: 4px 0; }
+    .st-cal span { font-size: 13px; padding: 6px 0; border-radius: 6px; color: #0F172A; }
+    .st-cal .sat { color: #1D4ED8; } .st-cal .sun { color: #B91C1C; }
+    .st-cal span.ns { background: #F6E7B8; font-weight: 700; }
+    .st-cal span.fut { color: #94A3B8; }
+    .st-cal-note { padding: 4px 14px 12px; font-size: 12.5px; color: #475569; display: flex; align-items: center; gap: 6px; }
+    .st-ns-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: #F6E7B8; }
+    .st-top { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .st-top th { font-weight: 700; color: #475569; font-size: 12px; padding: 8px 8px 6px; border-bottom: 1px solid #E2E8F0; text-align: left; }
+    .st-top td { padding: 8px; border-bottom: 1px dotted #CBD5E1; vertical-align: top; }
+    .st-top td small { color: #64748B; }
+    .st-top th:last-child, .st-top td:last-child { text-align: right; white-space: nowrap; font-weight: 700; }
+    .st-top td:first-child { white-space: nowrap; color: #475569; }
+    .st-chart { padding: 10px 10px 8px; }
+    .st-cap { text-align: center; font-weight: 700; font-size: 13.5px; color: #334155; margin-bottom: 6px; }
+    .st-cap small { font-weight: 500; color: #64748B; }
+    .st-chart canvas { display: block; }
+    .st-empty { padding: 22px 12px; text-align: center; font-size: 13px; color: #64748B; }
+    /* 이미지 저장용 가로 배치 */
+    .st-export { position: fixed; left: -12000px; top: 0; width: 1240px; box-sizing: border-box; padding: 28px; background: #fff; font-family: 'IBM Plex Sans KR', 'Noto Sans KR', sans-serif; }
+    .st-brand { font-size: 13px; font-weight: 700; color: #A16207; margin-bottom: 8px; letter-spacing: 0.2px; }
+    .st-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+    .st-grid .st-c12 { grid-column: 1 / 3; }
+    .st-grid .st-c1 > * + * { margin-top: 14px; }
+    .st-grid .st-donut-wrap { flex-direction: row; align-items: center; }
+    .st-grid .st-legend { flex: 1; }
     .cat-head { all: unset; box-sizing: border-box; display: block; width: 100%; cursor: pointer; border-radius: 8px; }
     .cat-head:focus-visible { outline: 3px solid #1E40AF; outline-offset: 2px; }
     .cat-chev { font-size: 11px; color: #94A3B8; margin-right: 7px; transition: transform 0.2s; }
@@ -834,6 +896,21 @@
       </div>
     </main>
 
+    <main id="statsView" hidden>
+      <div class="home-pad st-page">
+        <div class="month-bar">
+          <button onclick="shiftMonth(-1)" aria-label="이전 달"><i class="fas fa-chevron-left"></i></button>
+          <span id="statsMonth" aria-live="polite"></span>
+          <button id="statsNext" onclick="shiftMonth(1)" aria-label="다음 달"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="st-toolbar">
+          <div class="st-tabs" id="statsTabs" role="group" aria-label="누구 기준으로 볼지" hidden></div>
+          <button type="button" class="st-save" id="btnStatsSave" onclick="downloadStats()"><i class="fas fa-download"></i> 이미지 저장</button>
+        </div>
+        <div id="statsBody" class="st-body"></div>
+      </div>
+    </main>
+
     <main id="fixedView" hidden>
       <div class="fixed-head">
         <div>
@@ -925,6 +1002,7 @@
           <button class="nav-btn" id="navHome" onclick="showView('home')" aria-current="page"><i class="fas fa-house"></i><span>홈</span></button>
           <button class="nav-add" id="fab" onclick="openEntry()" aria-label="수입·지출 기록 추가"><i class="fas fa-plus"></i><span>기록</span></button>
           <button class="nav-btn" id="navFixed" onclick="showView('fixed')"><i class="fas fa-wallet"></i><span>고정지출</span></button>
+          <button class="nav-btn" id="navStats" onclick="showView('stats')"><i class="fas fa-chart-pie"></i><span>통계</span></button>
         </div>
         <div class="edit-row">
           <button class="btn-ghost" onclick="cancelEdit()">취소</button>
@@ -2209,6 +2287,7 @@
       catCtx = { byWho: byWho, members: members, entries: viewed.filter(e => e.type !== 'income' && e.category !== '저축') };
       renderCatBars(agg.cats, agg.discount, spend);
       renderFeed(viewed);
+      if (currentView === 'stats') { clearTimeout(stTimer); stTimer = setTimeout(renderStats, 30); }
       hideIcons(document);
     }
 
@@ -2390,7 +2469,278 @@
       hideIcons(document);
     }
 
-    /* ===== 화면 전환: 홈 / 고정지출 ===== */
+    /* ============================================================
+       통계 — 그달의 전체 통계 (화면 + 이미지 저장)
+       ============================================================ */
+    const ST_COLORS = ['#1E3A8A', '#A16207', '#0F766E', '#9F1239', '#6D28D9', '#0369A1', '#B45309', '#475569', '#BE185D', '#4D7C0F'];
+    const stPrevCache = {};   // ym → 지난달 기록(누적 비교용)
+    function prevYmOf(ym) { const p = ym.split('-').map(Number); const d = new Date(p[0], p[1] - 2, 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
+    function daysIn(ym) { const p = ym.split('-').map(Number); return new Date(p[0], p[1], 0).getDate(); }
+
+    function statsData() {
+      const names = viewedUsernames();
+      const members = memberList().filter(m => names.indexOf(m.username) >= 0);
+      let fCard = 0, fLoan = 0, fCash = 0, fSave = 0;
+      const people = [];
+      members.forEach(m => {
+        const s = summaryOf(m);
+        fCard += s.card || 0; fLoan += s.loan || 0; fCash += s.cash || 0; fSave += s.savings || 0;
+        people.push({ u: m.username, fixed: Math.max(0, (s.card || 0) + (s.loan || 0) + (s.cash || 0) - (s.savings || 0)), vari: 0 });
+      });
+      const viewed = entries.filter(e => names.indexOf(e.owner) >= 0);
+      let income = 0, vari = 0, entrySave = 0;
+      const cats = {}, nd = daysIn(viewYm), daily = new Array(nd).fill(0), spends = [];
+      viewed.forEach(e => {
+        if (e.type === 'income') { income += e.amount; return; }
+        if (e.category === '저축') { entrySave += e.amount; return; }
+        vari += e.amount; cats[e.category] = (cats[e.category] || 0) + e.amount;
+        const d = Number(String(e.date).slice(8, 10)); if (d >= 1 && d <= nd) daily[d - 1] += e.amount;
+        const p = people.find(x => x.u === e.owner); if (p) p.vari += e.amount;
+        spends.push(e);
+      });
+      const fixed = Math.max(0, fCard + fLoan + fCash - fSave);
+      const save = fSave + entrySave, spend = fixed + vari;
+      const slices = [];
+      if (fixed > 0) slices.push({ k: '고정지출', v: fixed });
+      if (save > 0) slices.push({ k: '저축', v: save });
+      Object.keys(cats).forEach(k => slices.push({ k: k, v: cats[k] }));
+      slices.sort((a, b) => b.v - a.v);
+      if (slices.length > 9) { const rest = slices.splice(8); slices.push({ k: '기타', v: rest.reduce((a, b) => a + b.v, 0) }); }
+      // 무지출 날: 변동 지출(이달 기록)이 없는 날, 오늘 이후는 제외
+      const today = new Date(), isCur = viewYm === curYm();
+      const upto = isCur ? today.getDate() : (viewYm > curYm() ? 0 : nd);
+      let noSpend = 0; for (let i = 0; i < upto; i++) if (!daily[i]) noSpend++;
+      return { members, people, income, spend, save, fixed, vari, fCard, fLoan, fCash, fSave, slices, daily, nd, upto, noSpend,
+        top: spends.sort((a, b) => b.amount - a.amount).slice(0, 5), names };
+    }
+
+    function stWho() {
+      if (viewTab === 'all') return group ? (group.name || '우리집') + ' 전체' : '나';
+      if (viewTab === 'me') return '나';
+      const m = memberList().find(x => x.username === viewTab); return m ? m.name : '';
+    }
+
+    function statsHtml(S, wide) {
+      const p = viewYm.split('-').map(Number), nd = S.nd;
+      const rate = S.income > 0 ? Math.round(S.save / S.income * 100) : null;
+      const left = S.income - S.spend - S.save;
+      const head = `<div class="st-head"><div class="st-mon">${p[1]}<small>월</small></div>
+        <div class="st-range">${p[0]}. ${p[1]}. 1 ~ ${p[0]}. ${p[1]}. ${nd}<br><b>${esc(stWho())}</b></div></div>`;
+      const summary = `<div class="st-box"><div class="st-bar">이달의 정리</div>
+        <dl class="st-dl">
+          <div><dt>총 수입</dt><dd class="inc">${num(S.income)}</dd></div>
+          <div><dt>총 지출</dt><dd class="neg">${num(S.spend)}</dd></div>
+          <div><dt>총 저축</dt><dd>${num(S.save)}</dd></div>
+          <div><dt>저축률</dt><dd>${rate === null ? '-' : rate + '%'}</dd></div>
+          <div><dt>남은 돈</dt><dd class="${left >= 0 ? 'pos' : 'neg'}">${S.income > 0 ? num(left) : '-'}</dd></div>
+        </dl></div>`;
+      const total = S.slices.reduce((a, b) => a + b.v, 0);
+      const donut = `<div class="st-box st-donut-box"><div class="st-bar">분류별 지출 · 저축</div>
+        ${total > 0 ? `<div class="st-donut-wrap"><canvas class="st-cv" data-chart="donut"></canvas>
+        <ul class="st-legend">${S.slices.map((x, i) => `<li><i style="background:${ST_COLORS[i % ST_COLORS.length]}"></i><span>${esc(x.k)}</span><b>${(x.v / total * 100).toFixed(1)}%</b><em>${num(x.v)}</em></li>`).join('')}</ul></div>`
+        : '<div class="st-empty">아직 이번 달 지출이 없어요.</div>'}</div>`;
+      // 달력
+      const first = (new Date(p[0], p[1] - 1, 1).getDay() + 6) % 7; // 월요일 시작
+      let cells = '';
+      for (let i = 0; i < first; i++) cells += '<span></span>';
+      for (let d = 1; d <= nd; d++) {
+        const dow = (first + d - 1) % 7;
+        const ns = d <= S.upto && !S.daily[d - 1];
+        cells += `<span class="${dow === 5 ? 'sat' : dow === 6 ? 'sun' : ''}${ns ? ' ns' : ''}${d > S.upto ? ' fut' : ''}">${d}</span>`;
+      }
+      const cal = `<div class="st-box"><div class="st-bar">이달의 무지출 Day <small>(고정지출 제외)</small></div>
+        <div class="st-cal"><b>월</b><b>화</b><b>수</b><b>목</b><b>금</b><b class="sat">토</b><b class="sun">일</b>${cells}</div>
+        <div class="st-cal-note"><i class="st-ns-dot"></i> 무지출 <b>${S.noSpend}일</b>${S.upto ? ' / ' + S.upto + '일' : ''}</div></div>`;
+      const comp = `<div class="st-box"><div class="st-bar">지출 구성</div>
+        <dl class="st-dl">
+          <div><dt>카드 고정 <small>(할인 후)</small></dt><dd>${num(S.fCard)}</dd></div>
+          <div><dt>대출 상환</dt><dd>${num(S.fLoan)}</dd></div>
+          <div><dt>현금 고정</dt><dd>${num(S.fCash)}</dd></div>
+          ${S.fSave > 0 ? `<div><dt>└ 그중 저축</dt><dd>−${num(S.fSave)}</dd></div>` : ''}
+          <div><dt>이달 기록 (변동)</dt><dd>${num(S.vari)}</dd></div>
+        </dl></div>`;
+      const ppl = `<div class="st-box"><div class="st-bar">사람별 지출</div>
+        <dl class="st-dl">${S.people.map(x => `<div><dt><i class="st-pdot" style="background:${memberColor(x.u)}"></i>${esc(whoLabel(x.u))} <small>고정 ${num(x.fixed)} · 변동 ${num(x.vari)}</small></dt><dd>${num(x.fixed + x.vari)}</dd></div>`).join('') || '<div><dt>-</dt><dd>-</dd></div>'}</dl></div>`;
+      const top = `<div class="st-box"><div class="st-bar">이달의 큰 지출 TOP 5</div>
+        ${S.top.length ? `<table class="st-top"><thead><tr><th>날짜</th><th>분류</th><th>내용</th><th>금액</th></tr></thead><tbody>
+        ${S.top.map(e => `<tr><td>${Number(e.date.slice(5, 7))}/${Number(e.date.slice(8, 10))}</td><td>${esc(e.category)}</td><td>${esc(e.memo || '-')}${S.names.length > 1 ? ` <small>${esc(whoLabel(e.owner))}</small>` : ''}</td><td>${num(e.amount)}</td></tr>`).join('')}
+        </tbody></table>` : '<div class="st-empty">이달 기록한 지출이 없어요.</div>'}</div>`;
+      const bars = `<div class="st-box st-chart"><div class="st-cap">일일 지출 그래프 (고정지출 제외) <small>[단위: 천원]</small></div><canvas class="st-cv" data-chart="bars"></canvas></div>`;
+      const line = `<div class="st-box st-chart"><div class="st-cap">누적 지출 그래프 <small>[단위: 천원]</small></div><canvas class="st-cv" data-chart="line"></canvas></div>`;
+      if (wide) return `<div class="st-grid">
+          <div class="st-c1">${head}${summary}</div><div class="st-c2">${donut}</div><div class="st-c3">${cal}</div>
+          <div class="st-c1">${comp}</div><div class="st-c2">${ppl}</div><div class="st-c3">${top}</div>
+          <div class="st-c12">${bars}</div><div class="st-c3">${line}</div></div>`;
+      return head + summary + donut + cal + bars + line + comp + ppl + top;
+    }
+
+    function setupCanvas(cv, h) {
+      const pe = cv.parentElement, cs = getComputedStyle(pe);
+      const w = Math.floor((pe.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0)) || 300), dpr = window.devicePixelRatio || 1;
+      const sc = Math.max(2, dpr);
+      cv.width = Math.round(w * sc); cv.height = Math.round(h * sc);
+      cv.style.width = w + 'px'; cv.style.height = h + 'px';
+      const g = cv.getContext('2d'); g.setTransform(sc, 0, 0, sc, 0, 0);
+      g.font = "12px 'IBM Plex Sans KR', sans-serif";
+      return { g: g, w: w, h: h };
+    }
+    function drawDonut(cv, S) {
+      const size = Math.min(cv.parentElement.clientWidth || 200, 200);
+      const W = size, H = size, dpr = 2;
+      cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const total = S.slices.reduce((a, b) => a + b.v, 0); if (!total) return;
+      const cx = W / 2, cy = H / 2, R = W / 2 - 4, r = R * 0.56;
+      let a0 = -Math.PI / 2;
+      S.slices.forEach((x, i) => {
+        const a1 = a0 + x.v / total * Math.PI * 2;
+        g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, a0, a1); g.closePath();
+        g.fillStyle = ST_COLORS[i % ST_COLORS.length]; g.fill();
+        g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke();
+        const pct = x.v / total;
+        if (pct >= 0.06) {
+          const am = (a0 + a1) / 2, rr = (R + r) / 2;
+          g.fillStyle = '#fff'; g.font = "700 11px 'IBM Plex Sans KR', sans-serif"; g.textAlign = 'center'; g.textBaseline = 'middle';
+          g.fillText(Math.round(pct * 100) + '%', cx + Math.cos(am) * rr, cy + Math.sin(am) * rr);
+        }
+        a0 = a1;
+      });
+      g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
+      g.fillStyle = '#475569'; g.font = "600 11px 'IBM Plex Sans KR', sans-serif"; g.textAlign = 'center';
+      g.fillText('합계', cx, cy - 9);
+      g.fillStyle = '#0F172A'; g.font = "700 14px 'IBM Plex Sans KR', sans-serif";
+      g.fillText(num(total / 1000) + '천', cx, cy + 9);
+    }
+    function niceScale(v) {
+      if (!(v > 0)) v = 100;
+      const raw = v / 4, e = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / e;
+      const step = (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * e;
+      const steps = Math.max(1, Math.ceil(v / step));
+      return { max: step * steps, steps: steps };
+    }
+    function axes(g, L, T, W, H, max, steps) {
+      g.strokeStyle = '#E2E8F0'; g.lineWidth = 1; g.fillStyle = '#64748B'; g.font = "11px 'IBM Plex Sans KR', sans-serif"; g.textAlign = 'right'; g.textBaseline = 'middle';
+      for (let i = 0; i <= steps; i++) {
+        const y = T + H - H * i / steps;
+        g.beginPath(); g.moveTo(L, y + 0.5); g.lineTo(L + W, y + 0.5); g.stroke();
+        g.fillText(num(max * i / steps), L - 6, y);
+      }
+    }
+    function drawBars(cv, S, wide) {
+      const c = setupCanvas(cv, wide ? 200 : 190), g = c.g;
+      const vals = S.daily.map(v => v / 1000), sc = niceScale(Math.max.apply(null, vals.concat([1])) * 1.1), mx = sc.max;
+      const L = 34, R = 6, T = 14, B = 26, W = c.w - L - R, H = c.h - T - B;
+      axes(g, L, T, W, H, mx, sc.steps);
+      const bw = W / S.nd;
+      vals.forEach((v, i) => {
+        const x = L + i * bw, bh = v / mx * H;
+        if (v > 0) {
+          g.fillStyle = '#1E3A8A'; g.fillRect(x + bw * 0.18, T + H - bh, bw * 0.64, bh);
+          if (wide || bw >= 13) { g.fillStyle = '#334155'; g.font = `600 ${wide ? 10 : 9}px 'IBM Plex Sans KR', sans-serif`; g.textAlign = 'center'; g.textBaseline = 'bottom'; g.fillText(Math.round(v), x + bw / 2, T + H - bh - 2); }
+        }
+        const d = i + 1;
+        if (wide || d === 1 || d % 5 === 0) { g.fillStyle = '#64748B'; g.font = "10px 'IBM Plex Sans KR', sans-serif"; g.textAlign = 'center'; g.textBaseline = 'top'; g.fillText(d + (wide ? '' : '일'), x + bw / 2, T + H + 6); }
+      });
+    }
+    function cumul(daily, upto) { const out = []; let s = 0; for (let i = 0; i < upto; i++) { s += daily[i] || 0; out.push(s / 1000); } return out; }
+    function drawLine(cv, S, wide) {
+      const c = setupCanvas(cv, wide ? 200 : 190), g = c.g;
+      const cur = cumul(S.daily, S.upto);
+      const prevE = stPrevCache[prevYmOf(viewYm)];
+      let prev = null;
+      if (prevE) {
+        const pnd = daysIn(prevYmOf(viewYm)), pd = new Array(pnd).fill(0);
+        prevE.filter(e => S.names.indexOf(e.owner) >= 0 && e.type !== 'income' && e.category !== '저축').forEach(e => { const d = Number(String(e.date).slice(8, 10)); if (d >= 1 && d <= pnd) pd[d - 1] += e.amount; });
+        prev = cumul(pd, pnd);
+      }
+      const mxv = Math.max.apply(null, cur.concat(prev || []).concat([1]));
+      const sc = niceScale(mxv * 1.1), mx = sc.max;
+      const L = 40, R = 10, T = 16, B = 36, W = c.w - L - R, H = c.h - T - B, n = Math.max(S.nd, prev ? prev.length : 0);
+      axes(g, L, T, W, H, mx, sc.steps);
+      const X = i => L + (n <= 1 ? 0 : i / (n - 1) * W), Y = v => T + H - v / mx * H;
+      const path = (arr, col, lw) => { if (!arr || !arr.length) return; g.beginPath(); arr.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v))); g.strokeStyle = col; g.lineWidth = lw; g.lineJoin = 'round'; g.stroke(); };
+      path(prev, '#CBD5E1', 2); path(cur, '#0B192C', 2.5);
+      if (cur.length) {
+        const lv = cur[cur.length - 1], lx = X(cur.length - 1), ly = Y(lv);
+        g.fillStyle = '#0B192C'; g.beginPath(); g.arc(lx, ly, 3.5, 0, Math.PI * 2); g.fill();
+        g.font = "italic 700 13px 'IBM Plex Sans KR', sans-serif"; g.textAlign = lx > L + W - 50 ? 'right' : 'left'; g.textBaseline = 'bottom';
+        g.fillText(num(lv), lx + (g.textAlign === 'right' ? 0 : 6), ly - 5);
+      }
+      // 범례
+      const pm = Number(prevYmOf(viewYm).split('-')[1]), cm = Number(viewYm.split('-')[1]);
+      g.font = "600 11px 'IBM Plex Sans KR', sans-serif"; g.textBaseline = 'middle'; g.textAlign = 'left';
+      const ly2 = c.h - 10; let lx2 = L;
+      if (prev) { g.fillStyle = '#CBD5E1'; g.fillRect(lx2, ly2 - 1.5, 16, 3); g.fillStyle = '#475569'; g.fillText(pm + '월 누적', lx2 + 21, ly2); lx2 += 84; }
+      g.fillStyle = '#0B192C'; g.fillRect(lx2, ly2 - 1.5, 16, 3); g.fillStyle = '#475569'; g.fillText(cm + '월 누적', lx2 + 21, ly2);
+    }
+    function drawStats(root, S, wide) {
+      root.querySelectorAll('canvas[data-chart]').forEach(cv => {
+        const t = cv.dataset.chart;
+        if (t === 'donut') drawDonut(cv, S); else if (t === 'bars') drawBars(cv, S, wide); else drawLine(cv, S, wide);
+      });
+    }
+    function renderStatsTabs() {
+      const box = $('statsTabs'); const list = memberList();
+      if (list.length < 2) { box.hidden = true; return; }
+      box.hidden = false;
+      const tabs = [{ key: 'all', label: '전체' }, { key: 'me', label: '나' }].concat(list.filter(m => !me || m.username !== me.username).map(m => ({ key: m.username, label: m.name })));
+      box.innerHTML = tabs.map(t => `<button type="button" class="st-tab" aria-pressed="${viewTab === t.key}" onclick="setViewTab('${esc(t.key)}')">${esc(t.label)}</button>`).join('');
+    }
+    let stTimer = null;
+    function renderStats() {
+      if (currentView !== 'stats' || !me) return;
+      $('statsMonth').textContent = ymLabel(viewYm);
+      $('statsNext').disabled = viewYm >= curYm();
+      renderStatsTabs();
+      const S = statsData(), box = $('statsBody');
+      box.innerHTML = statsHtml(S, false);
+      requestAnimationFrame(() => drawStats(box, S, false));
+      const pym = prevYmOf(viewYm);
+      if (!stPrevCache[pym] && group) {
+        stPrevCache[pym] = null;
+        apiCall('sync', { ym: pym, force: true }).then(res => {
+          if (res && res.success) { stPrevCache[pym] = res.entries || []; clearTimeout(stTimer); stTimer = setTimeout(renderStats, 50); }
+          else delete stPrevCache[pym];
+        }).catch(() => { delete stPrevCache[pym]; });
+      }
+    }
+    function downloadStats() {
+      const btn = $('btnStatsSave');
+      if (typeof html2canvas !== 'function') { showToast('이미지 저장 도구를 불러오지 못했어요. 인터넷 연결을 확인하세요.', true); return; }
+      const S = statsData();
+      const wrap = document.createElement('div');
+      wrap.className = 'st-export';
+      wrap.innerHTML = `<div class="st-brand">스마트 지출 · ${esc(ymLabel(viewYm))} 통계</div>` + statsHtml(S, true);
+      document.body.appendChild(wrap);
+      drawStats(wrap, S, true);
+      // 도넛 캔버스 → 이미지 (html2canvas 호환)
+      wrap.querySelectorAll('canvas').forEach(cv => { const im = new Image(); im.src = cv.toDataURL('image/png'); im.style.width = cv.style.width; im.style.height = cv.style.height; im.className = cv.className; cv.replaceWith(im); });
+      btn.disabled = true; const orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 만드는 중';
+      const done = () => { btn.disabled = false; btn.innerHTML = orig; hideIcons(btn); if (wrap.parentNode) wrap.remove(); };
+      const fname = `스마트지출_통계_${viewYm}.png`;
+      setTimeout(() => {
+        html2canvas(wrap, { scale: 2, backgroundColor: '#FFFFFF', windowWidth: 1100, useCORS: true, logging: false }).then(canvas => {
+          canvas.toBlob(blob => {
+            done();
+            if (!blob) { showToast('이미지를 만들지 못했어요.', true); return; }
+            const file = new File([blob], fname, { type: 'image/png' });
+            if (navigator.canShare && navigator.canShare({ files: [file] }) && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+              navigator.share({ files: [file], title: fname }).catch(() => {});
+            } else {
+              const url = URL.createObjectURL(blob), a = document.createElement('a');
+              a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 4000);
+              showToast('<i class="fas fa-check-circle"></i> 통계 이미지를 저장했어요');
+            }
+          }, 'image/png');
+        }).catch(() => { done(); showToast('이미지를 만들지 못했어요.', true); });
+      }, 60);
+    }
+
+    let stResize = null;
+    window.addEventListener('resize', () => { clearTimeout(stResize); stResize = setTimeout(() => { if (currentView === 'stats') renderStats(); }, 200); });
+
+    /* ===== 화면 전환: 홈 / 고정지출 / 통계 ===== */
     let currentView = 'home';
     function showView(v) {
       if (v === currentView) { window.scrollTo(0, 0); return; }
@@ -2398,10 +2748,11 @@
       currentView = v;
       $('homeView').hidden = v !== 'home';
       $('fixedView').hidden = v !== 'fixed';
-      if (v === 'home') { $('navHome').setAttribute('aria-current', 'page'); $('navFixed').removeAttribute('aria-current'); }
-      else { $('navFixed').setAttribute('aria-current', 'page'); $('navHome').removeAttribute('aria-current'); }
+      $('statsView').hidden = v !== 'stats';
+      [['home', 'navHome'], ['fixed', 'navFixed'], ['stats', 'navStats']].forEach(x => { if (x[0] === v) $(x[1]).setAttribute('aria-current', 'page'); else $(x[1]).removeAttribute('aria-current'); });
       window.scrollTo(0, 0);
       if (v === 'fixed') renderFixed();
+      if (v === 'stats') renderStats();
     }
 
     function renderFeed(list) {
