@@ -4,7 +4,8 @@
 //  · 모든 요청은 POST(JSON). 로그인 후 받은 '토큰'으로 인증한다.
 //    (비밀번호는 주소창에 실리지 않고, 시트에는 해시로 저장된다)
 //  · 시트 구성
-//      Users    : 아이디 | 비밀번호(해시) | 이름 | 그룹ID   ← 계정은 여기서 직접 추가
+//      Users    : 아이디 | 비밀번호(해시) | 이름 | 그룹ID | 카카오ID | 가입시각
+//                 ← 가입은 앱에서 초대코드로(또는 여기서 직접 추가)
 //      Data     : 아이디 | 고정지출 데이터(JSON) | 요약(JSON) | 수정시각
 //      Groups   : 그룹ID | 이름 | 초대코드 | 만든사람 | 만든시각
 //      Entries  : 수입·지출 장부(한 줄 = 한 건, 입력자 포함)
@@ -19,6 +20,8 @@ const MAX_LOGIN_FAILS = 8;                        // 10분 내 실패 허용 횟
 const MAX_GROUP_MEMBERS = 6;
 const ENTRY_HEADERS = ['id', 'groupId', 'owner', 'ownerName', 'type', 'date', 'category', 'amount', 'memo', 'createdAt', 'updatedAt', 'deleted'];
 const GROUP_HEADERS = ['groupId', 'name', 'inviteCode', 'createdBy', 'createdAt'];
+// 카카오 로그인: 스크립트 속성 KAKAO_REST_KEY, KAKAO_CLIENT_SECRET 에 키 보관
+const KAKAO_REDIRECTS = ['https://koinsnew.github.io/m/'];   // 허용된 돌아올 주소
 
 // -------------------------------------------------------------
 //  진입점
@@ -90,6 +93,9 @@ function outputResult(obj, callback) {
 // -------------------------------------------------------------
 function handleApi(action, body) {
   if (action === 'login') return doLogin(body.username, body.password);
+  if (action === 'register') return withLock(function () { return doRegister(body); });
+  if (action === 'kakaoLogin') return kakaoLogin(body);
+  if (action === 'kakaoComplete') return withLock(function () { return kakaoComplete(body); });
 
   const auth = verifyToken(body.token);
   if (!auth) return { success: false, code: 'AUTH', message: '로그인이 만료되었습니다. 다시 로그인해주세요.' };
@@ -106,6 +112,8 @@ function handleApi(action, body) {
     case 'entryDelete':   return withLock(function () { return entrySetDeleted(user, body.id, 1); });
     case 'entryRestore':  return withLock(function () { return entrySetDeleted(user, body.id, 0); });
     case 'cardBenefit':   return getCardBenefit(body.query);
+    case 'kakaoLink':     return kakaoLink(user, body);
+    case 'kakaoUnlink':   return withLock(function () { return kakaoUnlink(user); });
     case 'txList':        return { success: true, list: getRecentTransactions(user, body.limit) };
     default:              return { success: false, message: '알 수 없는 요청입니다.' };
   }
@@ -134,6 +142,7 @@ function hashPw(pw) {
 }
 function checkPw(stored, pw) {
   stored = String(stored);
+  if (!stored || stored.indexOf('kakao$') === 0) return false;   // 카카오 전용 계정은 비밀번호 로그인 불가
   if (stored.indexOf('sha256$') === 0) {
     const parts = stored.split('$');
     return parts.length === 3 && sha256Hex(parts[1] + pw) === parts[2];
@@ -211,7 +220,8 @@ function getUserInfo(username) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(username)) {
-      return { sheet: sheet, row: i + 1, username: String(data[i][0]), name: data[i][2] || String(data[i][0]), groupId: String(data[i][3] || '') };
+      return { sheet: sheet, row: i + 1, username: String(data[i][0]), name: data[i][2] || String(data[i][0]), groupId: String(data[i][3] || ''),
+        kakaoId: String(data[i][4] || ''), kakaoOnly: String(data[i][1] || '').indexOf('kakao$') === 0 };
     }
   }
   return null;
@@ -503,7 +513,7 @@ function syncAll(user, body) {
     return { success: true, unchanged: true, rev: combined, serverTime: Date.now() };
   }
 
-  const out = { success: true, rev: combined, serverTime: Date.now(), ym: ym, me: { username: me.username, name: me.name, groupId: me.groupId }, group: null, entries: [] };
+  const out = { success: true, rev: combined, serverTime: Date.now(), ym: ym, me: { username: me.username, name: me.name, groupId: me.groupId, kakao: !!me.kakaoId, kakaoOnly: !!me.kakaoOnly }, group: null, entries: [] };
 
   const dataSheet = getSS().getSheetByName('Data');
   const mine = dataSheet ? findDataRow(dataSheet, user) : null;
@@ -729,4 +739,148 @@ function handleSms(text, username, key) {
   const required = PropertiesService.getScriptProperties().getProperty('TX_KEY');
   if (required && String(key) !== required) return { success: false, message: '인증 키가 올바르지 않습니다.' };
   return saveTransaction(text, username);
+}
+
+
+// =============================================================
+//  회원가입 (초대코드 필수) · 카카오 로그인
+// =============================================================
+// 가입·카카오 시도 남용 방지 (전체 기준 10분에 30번 실패까지)
+function signupGuard() {
+  const n = parseInt(CacheService.getScriptCache().get('su_fail') || '0', 10);
+  return n >= 30 ? { success: false, message: '시도가 너무 많습니다. 10분 뒤 다시 시도해주세요.' } : null;
+}
+function signupFail(res) {
+  const c = CacheService.getScriptCache();
+  c.put('su_fail', String(parseInt(c.get('su_fail') || '0', 10) + 1), 600);
+  return res;
+}
+function findInvite(code) {
+  code = String(code || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(code)) return null;
+  const sh = getSS().getSheetByName('Groups');
+  if (!sh) return null;
+  const data = sh.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][2]).toUpperCase() === code) return { groupId: String(data[i][0]), name: String(data[i][1]) };
+  }
+  return null;
+}
+function usersSheet() {
+  const ss = getSS();
+  let sh = ss.getSheetByName('Users');
+  if (!sh) { sh = ss.insertSheet('Users'); sh.appendRow(['아이디', '비밀번호', '이름', '그룹ID', '카카오ID', '가입시각']); }
+  return sh;
+}
+function usernameTaken(sh, username) {
+  const data = sh.getDataRange().getValues(), u = String(username).toLowerCase();
+  for (let i = 1; i < data.length; i++) if (String(data[i][0]).toLowerCase() === u) return true;
+  return false;
+}
+function checkInviteForJoin(code) {
+  const g = findInvite(code);
+  if (!g) return { err: signupFail({ success: false, field: 'invite', message: '초대 코드를 찾을 수 없습니다. 코드를 다시 확인해주세요.' }) };
+  if (getGroupMembers(g.groupId).length >= MAX_GROUP_MEMBERS) return { err: { success: false, field: 'invite', message: '이 그룹은 정원(' + MAX_GROUP_MEMBERS + '명)이 찼습니다.' } };
+  return { group: g };
+}
+function cleanName(n) { return String(n || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 20); }
+
+function doRegister(body) {
+  const g0 = signupGuard(); if (g0) return g0;
+  const name = cleanName(body.name);
+  const username = String(body.username || '').trim();
+  const password = String(body.password || '');
+  if (!name) return { success: false, field: 'name', message: '이름을 입력해주세요.' };
+  if (!/^[A-Za-z0-9_.-]{4,20}$/.test(username)) return { success: false, field: 'username', message: '아이디는 영문·숫자 4~20자로 만들어주세요.' };
+  if (/^kakao_/i.test(username)) return { success: false, field: 'username', message: '이 아이디는 쓸 수 없습니다.' };
+  if (password.length < 8) return { success: false, field: 'password', message: '비밀번호는 8자 이상으로 만들어주세요.' };
+  const inv = checkInviteForJoin(body.inviteCode); if (inv.err) return inv.err;
+  const sh = usersSheet();
+  if (usernameTaken(sh, username)) return { success: false, field: 'username', message: '이미 있는 아이디입니다. 다른 아이디를 써주세요.' };
+  sh.appendRow([username, hashPw(password), name, inv.group.groupId, '', new Date()]);
+  bumpRev(username, ''); bumpGroupMembersRev(inv.group.groupId);
+  return { success: true, token: signToken(username), username: username, name: name, group: inv.group.name };
+}
+
+function kakaoKeys() {
+  const p = PropertiesService.getScriptProperties();
+  return { rest: p.getProperty('KAKAO_REST_KEY') || '', secret: p.getProperty('KAKAO_CLIENT_SECRET') || '' };
+}
+// 인가 코드 → 카카오 회원번호·닉네임
+function kakaoProfile(code, redirectUri) {
+  const k = kakaoKeys();
+  if (!k.rest) return { error: '카카오 로그인이 아직 설정되지 않았습니다.' };
+  if (KAKAO_REDIRECTS.indexOf(String(redirectUri)) < 0) return { error: '허용되지 않은 주소입니다.' };
+  if (!code || String(code).length > 512) return { error: '카카오 인증 정보가 올바르지 않습니다.' };
+  const payload = { grant_type: 'authorization_code', client_id: k.rest, redirect_uri: redirectUri, code: String(code) };
+  if (k.secret) payload.client_secret = k.secret;
+  const tr = UrlFetchApp.fetch('https://kauth.kakao.com/oauth/token', { method: 'post', payload: payload, muteHttpExceptions: true });
+  let tj = {}; try { tj = JSON.parse(tr.getContentText()); } catch (e) {}
+  if (tr.getResponseCode() !== 200 || !tj.access_token) return { error: '카카오 인증이 만료됐어요. 다시 시도해주세요.' };
+  const ur = UrlFetchApp.fetch('https://kapi.kakao.com/v2/user/me', { headers: { Authorization: 'Bearer ' + tj.access_token }, muteHttpExceptions: true });
+  let uj = {}; try { uj = JSON.parse(ur.getContentText()); } catch (e) {}
+  if (ur.getResponseCode() !== 200 || !uj.id) return { error: '카카오 회원 정보를 가져오지 못했습니다.' };
+  const nick = (uj.kakao_account && uj.kakao_account.profile && uj.kakao_account.profile.nickname) || (uj.properties && uj.properties.nickname) || '';
+  return { id: String(uj.id), nickname: cleanName(nick) };
+}
+function findByKakao(kid) {
+  const sh = getSS().getSheetByName('Users');
+  if (!sh || !kid) return null;
+  const data = sh.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) if (String(data[i][4] || '') === kid) return { row: i + 1, username: String(data[i][0]), name: data[i][2] || String(data[i][0]) };
+  return null;
+}
+
+function kakaoLogin(body) {
+  const g0 = signupGuard(); if (g0) return g0;
+  const pf = kakaoProfile(body.code, body.redirectUri);
+  if (pf.error) return signupFail({ success: false, message: pf.error });
+  const u = findByKakao(pf.id);
+  if (u) return { success: true, token: signToken(u.username), username: u.username, name: u.name };
+  // 처음 온 카카오 회원: 초대코드를 받아야 가입 (10분짜리 가입표)
+  const ticket = Utilities.getUuid().replace(/-/g, '');
+  CacheService.getScriptCache().put('kt_' + ticket, JSON.stringify(pf), 600);
+  return { success: false, code: 'NEED_INVITE', ticket: ticket, nickname: pf.nickname };
+}
+
+function kakaoComplete(body) {
+  const g0 = signupGuard(); if (g0) return g0;
+  const cache = CacheService.getScriptCache();
+  const raw = cache.get('kt_' + String(body.ticket || '').replace(/[^a-f0-9]/g, ''));
+  if (!raw) return { success: false, code: 'TICKET', message: '가입 시간이 지났어요. 카카오 로그인을 다시 눌러주세요.' };
+  const pf = JSON.parse(raw);
+  const exist = findByKakao(pf.id);
+  if (exist) { cache.remove('kt_' + body.ticket); return { success: true, token: signToken(exist.username), username: exist.username, name: exist.name }; }
+  const name = cleanName(body.name) || pf.nickname || '카카오 사용자';
+  const inv = checkInviteForJoin(body.inviteCode); if (inv.err) return inv.err;
+  const sh = usersSheet();
+  let username = 'kakao_' + pf.id;
+  if (usernameTaken(sh, username)) username += '_' + Math.random().toString(36).slice(2, 6);
+  sh.appendRow([username, 'kakao$' + Utilities.getUuid(), name, inv.group.groupId, pf.id, new Date()]);
+  cache.remove('kt_' + body.ticket);
+  bumpRev(username, ''); bumpGroupMembersRev(inv.group.groupId);
+  return { success: true, token: signToken(username), username: username, name: name, group: inv.group.name };
+}
+
+// 로그인한 계정에 카카오 연결 / 해제
+function kakaoLink(user, body) {
+  const pf = kakaoProfile(body.code, body.redirectUri);
+  if (pf.error) return { success: false, message: pf.error };
+  return withLock(function () {
+    const other = findByKakao(pf.id);
+    if (other && other.username !== user) return { success: false, message: '이 카카오 계정은 이미 다른 계정(' + other.name + ')에 연결돼 있습니다.' };
+    const me = getUserInfo(user);
+    if (!me) return { success: false, message: '계정을 찾을 수 없습니다.' };
+    me.sheet.getRange(me.row, 5).setValue(pf.id);
+    bumpRev(user, me.groupId);
+    return { success: true, nickname: pf.nickname };
+  });
+}
+function kakaoUnlink(user) {
+  const me = getUserInfo(user);
+  if (!me) return { success: false, message: '계정을 찾을 수 없습니다.' };
+  if (me.kakaoOnly) return { success: false, message: '카카오로 가입한 계정은 연결을 해제할 수 없습니다.' };
+  me.sheet.getRange(me.row, 5).setValue('');
+  bumpRev(user, me.groupId);
+  return { success: true };
 }
