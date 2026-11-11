@@ -479,6 +479,8 @@
     .feed-del { width: 44px; height: 44px; border: none; background: transparent; color: #94A3B8; font-size: 15px; cursor: pointer; flex-shrink: 0; }
     .feed-empty { text-align: center; color: #94A3B8; font-size: 13.5px; line-height: 1.6; padding: 26px 12px; background: #fff; border-radius: 16px; }
     .feed-more { align-self: center; margin-top: 4px; }
+    .feed-more-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .feed-more-row .feed-more { margin-top: 0; }
     .other-note { margin: 0 20px 28px; padding: 16px; border-radius: 16px; background: #EEF2F9; color: #0B192C; font-size: 13.5px; line-height: 1.6; display: none; }
     body.view-other .own-section, body.view-other #btnEdit { display: none; }
     body.view-other .other-note { display: block; }
@@ -2682,7 +2684,7 @@
       const again = $('famTabs').querySelector(`[data-key="${n.dataset.key}"]`); if (again) again.focus();
     }
 
-    let feedLimit = 15;
+    const FEED_STEP = 5; let feedLimit = FEED_STEP;   // 최근 기록은 5개씩 보여줌
     let catLimit = 6;
     let catCtx = { byWho: {}, members: [], entries: [] };
     const LIVING_CAT = '생활비';   // 이달에 기록한 지출이 모이는 분류
@@ -3179,7 +3181,7 @@
           <span class="feed-amt ${inc ? 'inc' : 'exp'}">${inc ? '+' : '-'}${Math.round(e.amount).toLocaleString('ko-KR')}</span>
           ${mine && !e.pending ? `<button class="feed-del" onclick="deleteEntry('${esc(e.id)}')" aria-label="${esc(title)} 삭제"><i class="fas fa-trash"></i></button>` : '<span style="width:12px"></span>'}
         </div>`;
-      }).join('') + (sorted.length > feedLimit ? `<button class="btn-ghost feed-more" onclick="feedLimit+=20; renderHousehold()">더 보기 (${sorted.length - feedLimit}건)</button>` : '');
+      }).join('') + ((sorted.length > feedLimit || feedLimit > FEED_STEP) ? `<div class="feed-more-row">${sorted.length > feedLimit ? `<button type="button" class="btn-ghost feed-more" onclick="feedLimit+=FEED_STEP; renderHousehold()"><i class="fas fa-chevron-down"></i> 더보기 · ${sorted.length - feedLimit}건 남음</button>` : ''}${feedLimit > FEED_STEP ? `<button type="button" class="btn-ghost feed-more" onclick="feedLimit=FEED_STEP; renderHousehold()"><i class="fas fa-chevron-up"></i> 접기</button>` : ''}</div>` : '');
     }
 
     /* ============================================================
