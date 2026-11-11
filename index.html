@@ -3335,7 +3335,8 @@
       ['NH농협카드', 'NH pay', 'nh.smart.nhallonepay'],
       ['BC카드', '페이북', 'kvp.jjy.MispAndroid320'],
       ['카카오뱅크', '카카오뱅크', 'com.kakaobank.channel'],
-      ['카카오페이', '카카오페이', 'com.kakaopay.app']
+      ['카카오페이', '카카오페이', 'com.kakaopay.app'],
+      ['토스카드', '토스', 'viva.republica.toss']
     ];
     function myCardApps() { try { const v = JSON.parse(localStorage.getItem('ss_cardapps') || '[]'); return Array.isArray(v) ? v.filter(p => CARD_APPS.some(c => c[2] === p)) : []; } catch (e) { return []; } }
     function toggleCardApp(pkg, btn) {
