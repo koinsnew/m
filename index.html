@@ -386,6 +386,10 @@
     }
     .btn-add-item:hover { background: #EEF2F9; border-color: var(--primary); color: var(--primary); }
     .btn-add-item:active { transform: scale(0.98); }
+    /* 평소엔 '수정', 수정 중에는 '항목 추가' */
+    .btn-item-add { display: none; }
+    .edit-on .btn-item-add { display: flex; }
+    .edit-on .btn-item-edit { display: none; }
 
     .progress-track { width: 100%; height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden; margin-top: 12px; position: relative; }
     .progress-fill { height: 100%; background: var(--primary); width: 0%; border-radius: 4px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -1851,7 +1855,8 @@
               </div>
               <div class="card-items ${isOpen ? 'open' : ''}" id="cardItems_${idx}">${itemsHtml}</div>
               ${hiddenCnt > 0 ? `<button type="button" class="btn-fold" id="cardFold_${idx}" aria-expanded="${isOpen}" aria-controls="cardItems_${idx}" onclick="toggleCardFold(${idx})">${isOpen ? '<i class="fas fa-chevron-up"></i> 접기' : `<i class="fas fa-chevron-down"></i> 더보기 · ${hiddenCnt}개 더`}</button>` : ''}
-              <button class="btn-add-item" onclick="addCardItem(${idx})"><i class="fas fa-plus"></i> 항목 추가</button>
+              <button type="button" class="btn-add-item btn-item-edit" onclick="editFixedCard('credit', ${idx})"><i class="fas fa-pen"></i> 수정</button>
+              <button type="button" class="btn-add-item btn-item-add" onclick="addCardItem(${idx})"><i class="fas fa-plus"></i> 항목 추가</button>
               <div style="margin-top: 4px;">
                 <div class="progress-track">
                   <div class="progress-fill ${progressColorClass}" id="progBar_${idx}" style="width: ${percent}%"></div>
@@ -1971,7 +1976,8 @@
             </div>
             <div class="card-body" style="gap:12px">
               ${itemsHtml}
-              <button class="btn-add-item" onclick="addCashItem(${idx})"><i class="fas fa-plus"></i> 항목 추가</button>
+              <button type="button" class="btn-add-item btn-item-edit" onclick="editFixedCard('cash', ${idx})"><i class="fas fa-pen"></i> 수정</button>
+              <button type="button" class="btn-add-item btn-item-add" onclick="addCashItem(${idx})"><i class="fas fa-plus"></i> 항목 추가</button>
             </div>
             <div class="card-footer"><span class="footer-label">합계</span><span class="footer-val c-cash" id="cashSum_${idx}">0원</span></div>
           </div></div></div>
@@ -1983,6 +1989,11 @@
     /* ============================================================
        + 추가 / − 삭제
        ============================================================ */
+    // 카드 안의 '수정' 버튼: 수정 상태로 바꾸고 그 카드에 머무름
+    function editFixedCard(key, i) {
+      ensureEdit();
+      goToSlide(key, i);
+    }
     function addCardItem(ci) {
       ensureEdit();
       appData.cards[ci].items.push({ name: '', amount: 0, excluded: false, category: '' });
@@ -2159,6 +2170,8 @@
       // 실제로 카드가 바뀐 순간에만 카운터를 톡 튀게
       if (el._lastIdx !== idx) {
         el._lastIdx = idx;
+        // 다른 카드로 넘기면 펼쳐 둔 카드 내역은 자동으로 접음
+        if (key === 'credit') Array.from(cardOpen).forEach(i => { if (i !== idx) toggleCardFold(i); });
         counterEl.classList.remove('pop');
         void counterEl.offsetWidth; // 리플로우로 애니메이션 재시작
         counterEl.classList.add('pop');
@@ -2593,7 +2606,7 @@
       viewed.forEach(e => {
         if (e.type === 'income') income += e.amount;
         else if (e.category === '저축') entrySave += e.amount;
-        else { entrySpend += e.amount; agg.cats[e.category] = (agg.cats[e.category] || 0) + e.amount; addWho(e.category, e.owner, e.amount); }
+        else { entrySpend += e.amount; agg.cats[LIVING_CAT] = (agg.cats[LIVING_CAT] || 0) + e.amount; addWho(LIVING_CAT, e.owner, e.amount); }   // 이달 기록은 모두 '생활비'로 모음
       });
 
       // 지출 = 카드(할인 후) + 대출 상환 + 현금 + 이달 기록 − 저축 / 남은 돈 = 수입 − 지출 − 저축
@@ -2672,6 +2685,7 @@
     let feedLimit = 15;
     let catLimit = 6;
     let catCtx = { byWho: {}, members: [], entries: [] };
+    const LIVING_CAT = '생활비';   // 이달에 기록한 지출이 모이는 분류
     const catOpen = new Set();
     function whoLabel(u) { if (me && u === me.username) return '나'; const m = memberList().find(x => x.username === u); return m ? m.name : u; }
     function loanPmt(l) {
@@ -2705,8 +2719,8 @@
         const want = (catCtx.byWho[cat] || {})[m.username] || 0;
         let got = 0;
         if (D) fixedDetails(D).filter(x => x.cat === cat).forEach(x => { got += x.amt; rows.push({ u: m.username, label: x.label, sub: '고정 · ' + x.kind, amt: x.amt }); });
-        const ent = catCtx.entries.filter(e => e.owner === m.username && e.category === cat);
-        ent.forEach(e => { got += e.amount; rows.push({ u: m.username, label: cleanMemo(e.memo) || e.category, sub: shortDate(new Date(e.date + 'T00:00:00').getTime()) + ' 기록', amt: e.amount }); });
+        const ent = cat === LIVING_CAT ? catCtx.entries.filter(e => e.owner === m.username) : [];
+        ent.forEach(e => { got += e.amount; rows.push({ u: m.username, label: cleanMemo(e.memo) || e.category, sub: shortDate(new Date(e.date + 'T00:00:00').getTime()) + ' 기록 · ' + e.category + (e.pay ? ' · ' + e.pay : ''), amt: e.amount }); });
         const rest = want - got;
         if (rest > 0) rows.push({ u: m.username, label: '고정지출', sub: '세부 항목 미공유', amt: rest });
       });
