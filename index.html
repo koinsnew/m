@@ -3455,8 +3455,12 @@
       ['BC카드', '페이북', 'kvp.jjy.MispAndroid320'],
       ['카카오뱅크', '카카오뱅크', 'com.kakaobank.channel'],
       ['카카오페이', '카카오페이', 'com.kakaopay.app'],
-      ['토스카드', '토스', 'viva.republica.toss']
+      ['토스카드', '토스', 'viva.republica.toss'],
+      ['문자 메시지', '카드 승인 문자', 'sms']
     ];
+    // 문자앱(삼성 메시지·구글 메시지) — '승인/취소'와 'OO원'이 둘 다 있는 문자만 보냄
+    const SMS_APPS = [['메시지', 'com.samsung.android.messaging'], ['메시지(Google)', 'com.google.android.apps.messaging']];
+    const SMS_REGEX = '(?s)(?=.*(승인|취소))(?=.*[0-9][0-9,]*원).*';
     function myCardApps() { try { const v = JSON.parse(localStorage.getItem('ss_cardapps') || '[]'); return Array.isArray(v) ? v.filter(p => CARD_APPS.some(c => c[2] === p)) : []; } catch (e) { return []; } }
     function toggleCardApp(pkg, btn) {
       const cur = myCardApps(), i = cur.indexOf(pkg);
@@ -3468,21 +3472,27 @@
     function autoUrl(k) { return SCRIPT_URL + '?action=tx&key=' + k; }
     function rndLong() { let d = String(1 + Math.floor(Math.random() * 8)); for (let i = 0; i < 17; i++) d += Math.floor(Math.random() * 10); return '-' + d; }
     // MacroDroid 가져오기용 매크로 파일 (알림 수신 → HTTP POST)
+    function notiTrigger(names, pkgs, regex) {
+      return {
+        enableRegex: !!regex, ignoreCase: true,
+        m_applicationNameList: names, m_packageNameList: pkgs,
+        m_exactMatch: false, m_excludeApps: false, m_excludes: false, m_ignoreOngoing: true, m_option: 0, m_soundOption: 0, m_supressMultiples: false,
+        m_textContent: regex || '', matchOptionMessage: 0, matchOptionTitle: 0, separateTitleAndMessage: false, disableLogging: false,
+        m_SIGUID: '__T__', m_classType: 'NotificationTrigger', m_comment: '', m_constraintList: [], m_isDisabled: false, m_isOrCondition: false
+      };
+    }
     function buildMacro(key, pkgs) {
-      const apps = CARD_APPS.filter(c => pkgs.indexOf(c[2]) >= 0);
+      const apps = CARD_APPS.filter(c => c[2] !== 'sms' && pkgs.indexOf(c[2]) >= 0);
+      const triggers = [];
+      if (apps.length) triggers.push(notiTrigger(apps.map(x => x[1]), apps.map(x => x[2]), ''));
+      if (pkgs.indexOf('sms') >= 0) triggers.push(notiTrigger(SMS_APPS.map(x => x[0]), SMS_APPS.map(x => x[1]), SMS_REGEX));
       const m = {
         macro: {
           aiGenerated: 0, breakpoints: [], disabledTimestamp: 0, exportedActionBlocks: [], forceEvenIfNotEnabledTimestamp: 0,
           isActionBlock: false, isExtra: false, isFavourite: false, lastEditedTimestamp: Date.now(), localVariables: [], localVarsAlphabetical: true,
           m_GUID: '__G__', m_category: '스마트 지출', m_constraintList: [], m_description: '카드 승인 알림을 스마트 지출 가계부에 자동으로 기록합니다.',
           m_descriptionOpen: false, m_enabled: true, m_excludeLog: false, m_headingColor: 0, m_isOrCondition: false, m_name: '스마트 지출 자동기록',
-          m_triggerList: [{
-            enableRegex: false, ignoreCase: true,
-            m_applicationNameList: apps.map(x => x[1]), m_packageNameList: apps.map(x => x[2]),
-            m_exactMatch: false, m_excludeApps: false, m_excludes: false, m_ignoreOngoing: true, m_option: 0, m_soundOption: 0, m_supressMultiples: false,
-            m_textContent: '', matchOptionMessage: 0, matchOptionTitle: 0, separateTitleAndMessage: false, disableLogging: false,
-            m_SIGUID: '__S1__', m_classType: 'NotificationTrigger', m_comment: '', m_constraintList: [], m_isDisabled: false, m_isOrCondition: false
-          }],
+          m_triggerList: triggers,
           m_actionList: [{
             requestConfig: {
               allFilesAccessPath: '', allowAnyCertificate: false, basicAuthEnabled: false, basicAuthPassword: '', basicAuthUsername: '', blockNextAction: false,
@@ -3501,7 +3511,7 @@
         },
         macroExportVersion: 1
       };
-      return JSON.stringify(m, null, 2).replace('"__G__"', rndLong()).replace('"__S1__"', rndLong()).replace('"__S2__"', rndLong());
+      return JSON.stringify(m, null, 2).replace('"__G__"', rndLong()).replace(/"__T__"/g, () => rndLong()).replace('"__S2__"', rndLong());
     }
     function downloadMacro(key, pkgs) {
       const blob = new Blob([buildMacro(key, pkgs)], { type: 'application/octet-stream' });
@@ -3528,7 +3538,7 @@
             </li>
             <li>
               <div class="as-num">2</div>
-              <div class="as-body"><b>쓰는 카드사 고르기</b><span>결제 알림을 받는 카드사를 눌러주세요. 여러 곳을 골라도 돼요.</span>
+              <div class="as-body"><b>쓰는 카드사 고르기</b><span>결제 알림을 받는 카드사를 눌러주세요. 여러 곳을 골라도 돼요. 승인 알림이 <b>문자</b>로 오면 맨 아래 <b>문자 메시지</b>도 골라주세요.</span>
                 <div class="card-picks">${(() => { const mine = myCardApps(); return CARD_APPS.map(c => `<button type="button" class="card-pick" aria-pressed="${mine.indexOf(c[2]) >= 0}" onclick="toggleCardApp('${c[2]}', this)">${c[0]}<small>${c[1]}</small></button>`).join(''); })()}</div>
                 <span class="card-pick-count" id="cardPickCount">${myCardApps().length ? myCardApps().length + '곳 골랐어요' : ''}</span></div>
             </li>
