@@ -3333,7 +3333,9 @@
       ['우리카드', '우리WON카드', 'com.wooricard.smartapp'],
       ['하나카드', '하나Pay', 'com.hanaskcard.paycla'],
       ['NH농협카드', 'NH pay', 'nh.smart.nhallonepay'],
-      ['BC카드', '페이북', 'kvp.jjy.MispAndroid320']
+      ['BC카드', '페이북', 'kvp.jjy.MispAndroid320'],
+      ['카카오뱅크', '카카오뱅크', 'com.kakaobank.channel'],
+      ['카카오페이', '카카오페이', 'com.kakaopay.app']
     ];
     function myCardApps() { try { const v = JSON.parse(localStorage.getItem('ss_cardapps') || '[]'); return Array.isArray(v) ? v.filter(p => CARD_APPS.some(c => c[2] === p)) : []; } catch (e) { return []; } }
     function toggleCardApp(pkg, btn) {
