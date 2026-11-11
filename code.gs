@@ -692,7 +692,9 @@ function parseCardAlert(text) {
   // 광고·안내 알림(예: '최대 10,000원 캐시백')은 무시: 승인/취소 글자와 날짜·카드번호 중 하나가 있어야 함
   if (!/승인|취소|사용\s*알림|결제/.test(t) || (!dm && !l4)) return null;
   // 가맹점: 알려진 조각을 지우고 남는 글자
-  let s = t.replace(/(누적|잔여|한도|잔액).*$/, '').replace(/(\.\.\.|…).*$/, '').replace(/\[[^\]]*\]/g, ' ');
+  // 누적·잔여 금액은 그 조각만 지움(우리카드처럼 가맹점이 누적금액 뒤에 오는 경우가 있음)
+  let s = t.replace(/총?(누적|잔여|한도|잔액)[가-힣\s:：]*[0-9][0-9,]*\s*원/g, ' ')
+    .replace(/(누적|잔여|한도|잔액).*$/, '').replace(/(\.\.\.|…).*$/, '').replace(/\[[^\]]*\]/g, ' ');
   if (dm) s = s.replace(dm[0], ' ');
   s = s.replace(amtStr, ' ')
     .replace(/\((결제|승인|취소|승인취소|해외|국내)\)/g, ' ')
@@ -704,7 +706,7 @@ function parseCardAlert(text) {
     .replace(/[가-힣]{0,2}\*[가-힣]{0,2}\s*님?/g, ' ')
     .replace(/일시불|\d+\s*개월|할부|무이자/g, ' ')
     .replace(/(승인|취소)(완료|되었습니다|됨)?/g, ' ')
-    .replace(/KB\s*Pay|사용\s*알림|Web발신/gi, ' ')
+    .replace(/KB\s*Pay|사용\s*알림|이용\s*안내|Web발신|[●■◆▶※]/gi, ' ')
     .replace(/\s+/g, ' ').trim();
   return {
     cancel: cancel, amount: amount,
