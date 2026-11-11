@@ -783,6 +783,23 @@
     .mode-make:disabled { opacity: 0.7; }
     .mode-back { display: block; width: 100%; min-height: 46px; margin-top: 10px; background: none; border: none; color: #475569; font-size: 15px; font-family: inherit; cursor: pointer; }
     .mode-now { font-size: 16px; color: #0F172A; margin: 4px 0 6px; }
+    .living-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; margin-bottom: 12px; border-radius: 12px; background: #FFFCF0; border: 1px solid #E9D48A; }
+    .lv-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .lv-main b { font-size: 15px; color: #713F12; } .lv-main small { font-size: 12px; color: #854D0E; }
+    .lv-amt { font-size: 17px; font-weight: 800; color: #0F172A; white-space: nowrap; }
+    .chip.pay { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .imp-open { width: 100%; min-height: 46px; margin-top: 10px; border-radius: 12px; border: 1.5px dashed #1E3A8A; background: #EEF2F9; color: #1E3A8A; font-size: 14.5px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .imp-list { list-style: none; margin: 12px 0 4px; padding: 0; }
+    .imp-list li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #E2E8F0; }
+    .imp-list li.off { opacity: 0.5; }
+    .imp-chk { width: 24px; height: 24px; flex-shrink: 0; accent-color: #1E3A8A; }
+    .imp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .imp-name { width: 100%; border: 1px solid transparent; border-radius: 8px; padding: 4px 6px; margin-left: -6px; font-family: inherit; font-size: 15px; font-weight: 700; color: #0F172A; background: transparent; }
+    .imp-name:focus { border-color: #1E3A8A; background: #fff; outline: none; }
+    .imp-sub { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #64748B; flex-wrap: wrap; }
+    .imp-sub select { min-height: 32px; border-radius: 8px; border: 1px solid #CBD5E1; background: #fff; font-family: inherit; font-size: 13px; padding: 0 6px; }
+    .imp-dup { font-size: 11.5px; color: #B45309; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 1px 6px; }
+    .imp-amt { font-size: 15px; white-space: nowrap; color: #B91C1C; }
     .auto-sec h3 { font-size: 18px; }
     .auto-lead { font-size: 16px; line-height: 1.6; color: #334155; margin: 6px 0 4px; }
     .auto-lead small { font-size: 13.5px; color: #64748B; }
@@ -1212,14 +1229,36 @@
         <label>분류</label>
         <div class="chips" id="entChips"></div>
         <input type="text" id="entCatCustom" placeholder="분류 직접 입력" maxlength="30" style="display:none; margin-top:8px" oninput="onEntryCustom(this)">
+        <div id="entPayWrap">
+          <label>결제수단</label>
+          <div class="chips" id="entPay" role="group" aria-label="결제수단"></div>
+        </div>
         <label for="entMemo">메모 (선택)</label>
         <input type="text" id="entMemo" maxlength="100" placeholder="예: 마트 장보기" enterkeyhint="done" onkeydown="entryKey(event)">
         <label for="entDate">날짜</label>
         <input type="date" id="entDate">
         <div class="by-line" id="entBy"></div>
+        <button type="button" class="imp-open" id="entImport" onclick="pickImportImage()"><i class="fas fa-image"></i> 카드내역 캡쳐로 여러 건 한 번에 등록</button>
+        <input type="file" id="impFile" accept="image/*" multiple hidden onchange="onImportFiles(this)">
         <div class="sheet-row">
           <button class="btn-danger" id="entDelete" style="display:none" onclick="deleteEntryFromSheet()">삭제</button>
           <button class="btn-primary" id="entSubmit" onclick="submitEntry()" disabled>기록하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="importSheet" class="benefit-modal" role="dialog" aria-modal="true" aria-labelledby="impTitle" onclick="if(event.target===this) closeSheet('importSheet')">
+    <div class="benefit-box">
+      <div class="benefit-head"><span id="impTitle"><i class="fas fa-image"></i> 캡쳐에서 읽은 내역</span><button class="benefit-close" onclick="closeSheet('importSheet')" aria-label="닫기"><i class="fas fa-times"></i></button></div>
+      <div class="sheet-body">
+        <p class="sheet-hint" id="impHint" style="margin-top:0"></p>
+        <label>어느 카드로 쓴 내역인가요?</label>
+        <div class="chips" id="impPay" role="group" aria-label="결제수단"></div>
+        <ul class="imp-list" id="impList"></ul>
+        <div class="sheet-row">
+          <button class="btn-ghost" onclick="closeSheet('importSheet')">취소</button>
+          <button class="btn-primary" id="impSubmit" onclick="submitImport()">등록</button>
         </div>
       </div>
     </div>
@@ -1697,11 +1736,31 @@
     /* ============================================================
        렌더 — 신용카드
        ============================================================ */
+    // 이 카드로 기록한 이달 지출(생활비) 합계 — 카드 이름이 결제수단과 같은 기록
+    function cardLiving(owner, name) {
+      name = String(name || '').trim();
+      const out = { sum: 0, n: 0 };
+      if (!name || !owner) return out;
+      entries.forEach(e => { if (e.type === 'expense' && e.owner === owner && String(e.pay || '').trim() === name) { out.sum += e.amount; out.n++; } });
+      return out;
+    }
+    function livingOwner(D) { return D === appData ? (me ? me.username : '') : fixedOwner; }
+    function livingNote(lv) { return `${Number(viewYm.split('-')[1])}월에 이 카드로 기록한 지출 ${lv.n}건`; }
+    let livingBusy = false;
+    function refreshFixedLiving() {
+      if (livingBusy || currentView !== 'fixed') return;
+      const D = domOwner === 'me' ? appData : otherData(fixedOwner);
+      if (!D) return;
+      livingBusy = true; try { calculateAll(D); } finally { livingBusy = false; }
+    }
+
     function renderCards(D = appData) {
       const con = document.getElementById('creditContainer');
       con.innerHTML = '';
+      const lvOwner = livingOwner(D);
       D.cards.forEach((c, idx) => {
-        let perfSum = 0;
+        const lv = cardLiving(lvOwner, c.name);
+        let perfSum = lv.sum;
         c.items.forEach(item => { if (!item.excluded) perfSum += (item.amount || 0); });
 
         let percent = 0;
@@ -1786,6 +1845,10 @@
               </div>
             </div>
             <div class="card-body">
+              <div class="living-row">
+                <div class="lv-main"><b><i class="fas fa-basket-shopping"></i> 생활비</b><small id="cardLivingCnt_${idx}">${livingNote(lv)}</small></div>
+                <span class="lv-amt" id="cardLiving_${idx}">${lv.sum.toLocaleString('ko-KR')}</span>
+              </div>
               <div class="card-items ${isOpen ? 'open' : ''}" id="cardItems_${idx}">${itemsHtml}</div>
               ${hiddenCnt > 0 ? `<button type="button" class="btn-fold" id="cardFold_${idx}" aria-expanded="${isOpen}" aria-controls="cardItems_${idx}" onclick="toggleCardFold(${idx})">${isOpen ? '<i class="fas fa-chevron-up"></i> 접기' : `<i class="fas fa-chevron-down"></i> 더보기 · ${hiddenCnt}개 더`}</button>` : ''}
               <button class="btn-add-item" onclick="addCardItem(${idx})"><i class="fas fa-plus"></i> 항목 추가</button>
@@ -2170,9 +2233,14 @@
       let spendAgg = {};   // 카드+현금 합산 카테고리별 지출(전체 지출 상세)
       let totalSavings = 0;
 
+      const lvOwner = livingOwner(D);
       D.cards.forEach((c, i) => {
+        const lv = cardLiving(lvOwner, c.name);   // 생활비: 실적과 카드 합계에는 넣고, 전체 지출 합계에는 중복되지 않게 뺌
+        const lvEl = gid(`cardLiving_${i}`), lvCnt = gid(`cardLivingCnt_${i}`);
+        if (lvEl) lvEl.textContent = lv.sum.toLocaleString('ko-KR');
+        if (lvCnt) lvCnt.textContent = livingNote(lv);
         let rawSum = 0;
-        let perfSum = 0, exSum = 0;
+        let perfSum = lv.sum, exSum = 0;
         c.items.forEach(item => {
           const amt = item.amount || 0;
           rawSum += amt;
@@ -2188,7 +2256,7 @@
         const discountAmt = c.discountAmount || 0;
         const netSum = Math.max(0, rawSum - discountAmt);
         const cardSumEl = gid(`cardSum_${i}`);
-        if (cardSumEl) cardSumEl.innerText = fmt(netSum);
+        if (cardSumEl) cardSumEl.innerText = fmt(Math.max(0, rawSum + lv.sum - discountAmt));
 
         const perfLine = gid(`perfLine_${i}`);
         if (perfLine) perfLine.innerHTML = perfLineHtml(perfSum, c.threshold || 0, exSum);
@@ -2264,7 +2332,8 @@
       if (dom && $('fsCard')) { $('fsCard').textContent = fmt(tCardNet); $('fsLoan').textContent = fmt(tLoan); $('fsCash').textContent = fmt(tCash); }
       if (!mine) return;
       mySummary = { card: tCardNet, loan: tLoan, cash: tCash, discount: tDiscount, savings: totalSavings, cats: spendAgg };
-      renderHousehold();
+      const wasBusy = livingBusy; livingBusy = true;
+      try { renderHousehold(); } finally { livingBusy = wasBusy; }
     }
 
 
@@ -2575,6 +2644,7 @@
       renderCatBars(agg.cats, agg.discount, spend);
       renderFeed(viewed);
       if (currentView === 'stats') { clearTimeout(stTimer); stTimer = setTimeout(renderStats, 30); }
+      refreshFixedLiving();
       hideIcons(document);
     }
 
@@ -3085,7 +3155,8 @@
         const inc = e.type === 'income';
         const auto = isAutoMemo(e.memo);
         const title = e.memo ? cleanMemo(e.memo) : e.category;
-        const meta = `${auto ? '<b class="auto-tag">자동</b>' : ''}${esc(e.ownerName)} · ${esc(e.category)} · ${md}`;
+        const who = (!inc && e.pay) ? e.pay : e.ownerName;   // 지출은 결제수단(현금·카드 이름), 없으면 이름
+        const meta = `${auto ? '<b class="auto-tag">자동</b>' : ''}${esc(who)} · ${esc(e.category)} · ${md}`;
         return `<div class="feed-item${e.pending ? ' pending' : ''}">
           <div class="feed-av" style="background:${memberColor(e.owner)}" aria-hidden="true">${esc((e.ownerName || '?').charAt(0))}</div>
           <button class="feed-main${mine && !e.pending ? ' mine' : ''}" ${mine && !e.pending ? `onclick="openEntry('${esc(e.id)}')" aria-label="${esc(title)} 수정"` : 'tabindex="-1"'}>
@@ -3187,7 +3258,8 @@
       const e = $('entQuick')._list[i]; if (!e) return;
       $('entAmount').value = num(e.amount); $('entMemo').value = e.memo || '';
       ent.cat = e.category; ent.custom = catChoices().indexOf(e.category) < 0; $('entCatCustom').value = ent.custom ? e.category : '';
-      renderEntryChips(); validateEntryForm();
+      if (e.pay) ent.pay = e.pay;
+      renderEntryChips(); renderEntryPay(); validateEntryForm();
       $('entSubmit').focus();
     }
     function entryKey(ev) {
@@ -3203,6 +3275,23 @@
       $('entChips').innerHTML = html;
       $('entCatCustom').style.display = ent.custom ? 'block' : 'none';
     }
+    // 결제수단: 현금 + 고정지출에 넣어 둔 내 카드들
+    function payChoices(extra) {
+      const list = ['현금'];
+      (appData.cards || []).forEach(c => { const n = String(c.name || '').trim(); if (n && list.indexOf(n) < 0) list.push(n); });
+      if (extra && list.indexOf(extra) < 0) list.push(extra);
+      return list;
+    }
+    function lastPay() { let v = ''; try { v = localStorage.getItem('ss_lastpay') || ''; } catch (e) {} return payChoices().indexOf(v) >= 0 ? v : '현금'; }
+    function payChipsHtml(cur, fn) {
+      return payChoices(cur).map(n => `<button type="button" class="chip pay" aria-pressed="${cur === n}" data-p="${esc(n)}" onclick="${fn}(this.dataset.p)">${n === '현금' ? '<i class="fas fa-money-bill-wave"></i> ' : '<i class="fas fa-credit-card"></i> '}${esc(n)}</button>`).join('');
+    }
+    function renderEntryPay() {
+      $('entPayWrap').style.display = ent.type === 'expense' ? '' : 'none';
+      $('entPay').innerHTML = payChipsHtml(ent.pay || '', 'pickPay'); hideIcons($('entPay'));
+    }
+    function pickPay(p) { ent.pay = p; renderEntryPay(); }
+
     function pickCat(c) { ent.cat = c; ent.custom = false; renderEntryChips(); validateEntryForm(); }
     function pickCustom() { ent.custom = true; ent.cat = $('entCatCustom').value.trim(); renderEntryChips(); setTimeout(() => $('entCatCustom').focus(), 30); validateEntryForm(); }
     function onEntryCustom(el) { ent.cat = el.value.trim(); validateEntryForm(); }
@@ -3216,7 +3305,8 @@
     function setEntryType(t) {
       ent.type = t; ent.cat = ''; ent.custom = false; ent.showAll = false; $('entCatCustom').value = '';
       $('segExp').setAttribute('aria-pressed', t === 'expense'); $('segInc').setAttribute('aria-pressed', t === 'income');
-      renderEntryChips(); renderQuick(); validateEntryForm();
+      renderEntryChips(); renderQuick(); renderEntryPay(); validateEntryForm();
+      $('entImport').style.display = (!ent.editId && t === 'expense') ? '' : 'none';
     }
 
     function openEntry(editId, draft, type) {
@@ -3227,6 +3317,8 @@
       const src = e || draft || null;
       if (src) { ent.type = src.type; ent.cat = src.category; }
       if (src && catChoices().indexOf(src.category) < 0) ent.custom = true;
+      ent.pay = e ? (e.pay || '') : ((draft && draft.pay) || lastPay());
+      $('entImport').style.display = (!e && ent.type === 'expense') ? '' : 'none';
       $('entryTitle').innerHTML = e ? '<i class="fas fa-pen-to-square"></i> 기록 수정' : '<i class="fas fa-pen-to-square"></i> 기록 추가';
       $('segExp').setAttribute('aria-pressed', ent.type === 'expense'); $('segInc').setAttribute('aria-pressed', ent.type === 'income');
       $('entAmount').value = src ? Number(src.amount).toLocaleString('ko-KR') : '';
@@ -3236,7 +3328,7 @@
       $('entCatCustom').value = ent.custom ? ent.cat : '';
       $('entBy').textContent = '입력자: ' + me.name;
       $('entDelete').style.display = e ? 'block' : 'none';
-      renderEntryChips(); renderQuick(); validateEntryForm();
+      renderEntryChips(); renderQuick(); renderEntryPay(); validateEntryForm();
       openSheet('entrySheet');
       setTimeout(() => $('entAmount').focus(), 120);
     }
@@ -3249,7 +3341,8 @@
           .then(ok => { if (ok) { ent.bigOk = true; submitEntry(); } else setTimeout(() => $('entAmount').focus(), 60); });
         return;
       }
-      const payload = { type: ent.type, amount: amount, date: $('entDate').value || todayLocal(), category: ent.cat, memo: $('entMemo').value.trim() };
+      const payload = { type: ent.type, amount: amount, date: $('entDate').value || todayLocal(), category: ent.cat, memo: $('entMemo').value.trim(), pay: ent.type === 'expense' ? (ent.pay || '') : '' };
+      if (payload.pay) { try { localStorage.setItem('ss_lastpay', payload.pay); } catch (e) {} }
       const editId = ent.editId;
       closeSheet('entrySheet');
       const inView = payload.date.slice(0, 7) === viewYm;
@@ -3293,6 +3386,90 @@
         } else if (res && res.code === 'NOGROUP') { entries = entries.filter(x => x.id !== tmpId); renderHousehold(); openFamily(); }
         else fail((res && res.message) || '기록에 실패했어요');
       }).catch(() => { writesInFlight--; fail('네트워크 오류'); });
+    }
+
+    /* ===== 카드내역 캡쳐 이미지로 여러 건 등록 ===== */
+    let imp = { items: [], pay: '현금' };
+    function pickImportImage() { const f = $('impFile'); f.value = ''; f.click(); }
+    // 서버로 보내기 전에 줄여서 JPEG로 (가로 1200px, 세로 5000px까지)
+    function shrinkImage(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file), img = new Image();
+        img.onload = () => {
+          let sc = Math.min(1, 1200 / img.width);
+          if (img.height * sc > 5000) sc = 5000 / img.height;
+          const cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(img.width * sc)); cv.height = Math.max(1, Math.round(img.height * sc));
+          const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0, cv.width, cv.height);
+          URL.revokeObjectURL(url);
+          let q = 0.8, data = cv.toDataURL('image/jpeg', q).split(',')[1];
+          while (data.length > 1300000 && q > 0.35) { q -= 0.15; data = cv.toDataURL('image/jpeg', q).split(',')[1]; }
+          data.length > 1300000 ? reject(new Error('big')) : resolve(data);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load')); };
+        img.src = url;
+      });
+    }
+    function onImportFiles(input) {
+      const files = Array.from(input.files || []).slice(0, 5);
+      if (!files.length) return;
+      closeSheet('entrySheet');
+      $('loading').style.display = 'flex';
+      const all = []; let cancelled = 0, lastErr = '';
+      const next = (i) => {
+        if (i >= files.length) return Promise.resolve();
+        return shrinkImage(files[i]).then(data => apiCall('ocrEntries', { image: data, mime: 'image/jpeg' })).then(res => {
+          if (res && res.success) { res.items.forEach(x => all.push(x)); cancelled += res.cancelled || 0; }
+          else lastErr = (res && res.message) || '이미지를 읽지 못했어요.';
+        }).catch(e => { lastErr = e && e.message === 'big' ? '이미지가 너무 커요. 화면을 나눠서 캡쳐해 주세요.' : '이미지를 읽지 못했어요. 인터넷 연결을 확인해주세요.'; }).then(() => next(i + 1));
+      };
+      next(0).then(() => {
+        $('loading').style.display = 'none';
+        if (!all.length) { showToast(lastErr || '결제 내역을 찾지 못했어요.', true); return; }
+        // 여러 장에 겹쳐 찍힌 같은 건은 한 번만
+        const seen = {}; imp.items = [];
+        all.forEach(x => { const k = x.date + '|' + x.time + '|' + x.amount + '|' + x.merchant; if (seen[k]) return; seen[k] = 1; imp.items.push(Object.assign({ on: !x.dup }, x)); });
+        imp.items.sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1));
+        imp.pay = lastPay(); imp.cancelled = cancelled;
+        renderImport(); openSheet('importSheet');
+        if (lastErr) showToast('일부 이미지는 읽지 못했어요', true);
+      });
+    }
+    function pickImpPay(p) { imp.pay = p; $('impPay').innerHTML = payChipsHtml(imp.pay, 'pickImpPay'); hideIcons($('impPay')); }
+    function renderImport() {
+      const dupN = imp.items.filter(x => x.dup).length;
+      $('impHint').innerHTML = `결제 <b>${imp.items.length}건</b>을 찾았어요. 틀린 곳이 있으면 고치고, 뺄 건은 체크를 풀어주세요.` +
+        (dupN ? `<br>같은 날짜·금액이 이미 있는 <b>${dupN}건</b>은 체크를 풀어 두었어요.` : '') + (imp.cancelled ? `<br>취소 건 ${imp.cancelled}건은 뺐어요.` : '');
+      $('impPay').innerHTML = payChipsHtml(imp.pay, 'pickImpPay');
+      const cats = EXP_CATS.filter(c => c !== '저축');
+      $('impList').innerHTML = imp.items.map((x, i) => `<li class="${x.on ? '' : 'off'}">
+          <input type="checkbox" class="imp-chk" ${x.on ? 'checked' : ''} aria-label="${esc(x.merchant)} 등록" onchange="imp.items[${i}].on = this.checked; this.closest('li').classList.toggle('off', !this.checked); updateImportBtn()">
+          <div class="imp-main">
+            <input type="text" class="imp-name" value="${esc(x.merchant)}" maxlength="40" aria-label="내용" onchange="imp.items[${i}].merchant = this.value.trim() || imp.items[${i}].merchant">
+            <div class="imp-sub"><span>${Number(x.date.slice(5, 7))}/${Number(x.date.slice(8, 10))}${x.time ? ' ' + esc(x.time) : ''}</span>
+              <select aria-label="분류" onchange="imp.items[${i}].category = this.value">${(cats.indexOf(x.category) < 0 ? cats.concat([x.category]) : cats).map(c => `<option${c === x.category ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>
+              ${x.dup ? '<b class="imp-dup">이미 기록됨</b>' : ''}</div>
+          </div>
+          <b class="imp-amt">${num(x.amount)}</b></li>`).join('');
+      hideIcons($('importSheet')); updateImportBtn();
+    }
+    function updateImportBtn() {
+      const on = imp.items.filter(x => x.on), sum = on.reduce((a, x) => a + x.amount, 0);
+      const b = $('impSubmit'); b.disabled = !on.length; b.textContent = on.length ? `${on.length}건 등록 (${num(sum)}원)` : '등록할 건을 골라주세요';
+    }
+    function submitImport() {
+      const on = imp.items.filter(x => x.on); if (!on.length) return;
+      const b = $('impSubmit'); b.disabled = true; b.textContent = '등록 중…';
+      try { localStorage.setItem('ss_lastpay', imp.pay); } catch (e) {}
+      writesInFlight++;
+      apiCall('entryAddMany', { pay: imp.pay, items: on.map(x => ({ date: x.date, amount: x.amount, category: x.category, memo: x.merchant })) }).then(res => {
+        writesInFlight--;
+        if (res && res.success) {
+          closeSheet('importSheet');
+          (res.entries || []).forEach(e => { if (e.date.slice(0, 7) === viewYm) entries.unshift(e); });
+          renderHousehold(); showToast(`${res.count}건을 등록했어요`); syncNow({ force: true });
+        } else { updateImportBtn(); showToast((res && res.message) || '등록하지 못했어요', true); }
+      }).catch(() => { writesInFlight--; updateImportBtn(); showToast('네트워크 오류', true); });
     }
 
     function deleteEntryFromSheet() {
@@ -3547,7 +3724,7 @@
               contentBodyDynamicFileName: '', contentBodyFileDisplayName: '', contentBodyFileUri: '', contentBodyFolderDisplayName: '', contentBodyFolderUri: '',
               contentBodySource: 0, contentBodyText: '{not_title}\n{notification}', contentType: 'text/plain', followRedirects: false, headerParams: [], localFileUri: '',
               prettifyJson: false, proxyEnabled: false, proxyHost: '', proxyPort: 8080, proxyType: 0,
-              queryParams: [{ paramName: 'action', paramValue: 'tx' }, { paramName: 'key', paramValue: key }],
+              queryParams: [{ paramName: 'action', paramValue: 'tx' }, { paramName: 'key', paramValue: key }, { paramName: 'app', paramValue: '{not_app_name}' }],
               requestTimeOutSeconds: 30, requestType: 1, responseVariableName: '', saveResponseAllFilesAccessPath: '', saveResponseFileName: '',
               saveResponseFolderPathDisplayName: '', saveResponseFolderPathUri: '', saveResponseType: 0, saveResponseUseAllFilesAccess: false,
               saveReturnCodeToVariable: false, saveReturnHeadersToVariable: false, urlToOpen: SCRIPT_URL,
