@@ -3369,7 +3369,7 @@
               allFilesAccessPath: '', allowAnyCertificate: false, basicAuthEnabled: false, basicAuthPassword: '', basicAuthUsername: '', blockNextAction: false,
               clientCertEnabled: false, clientCertKeyStoreDisplayName: '', clientCertKeyStoreUri: '', clientCertPassword: '',
               contentBodyDynamicFileName: '', contentBodyFileDisplayName: '', contentBodyFileUri: '', contentBodyFolderDisplayName: '', contentBodyFolderUri: '',
-              contentBodySource: 0, contentBodyText: '{notification}', contentType: 'text/plain', followRedirects: false, headerParams: [], localFileUri: '',
+              contentBodySource: 0, contentBodyText: '{not_title}\n{notification}', contentType: 'text/plain', followRedirects: false, headerParams: [], localFileUri: '',
               prettifyJson: false, proxyEnabled: false, proxyHost: '', proxyPort: 8080, proxyType: 0,
               queryParams: [{ paramName: 'action', paramValue: 'tx' }, { paramName: 'key', paramValue: key }],
               requestTimeOutSeconds: 30, requestType: 1, responseVariableName: '', saveResponseAllFilesAccessPath: '', saveResponseFileName: '',
@@ -3441,7 +3441,7 @@
               <div class="auto-url">${esc(autoUrl(autoNewKey))}</div>
               <button class="btn-ghost" style="width:100%; margin-top:8px" onclick="copyAutoUrl()"><i class="fas fa-copy"></i> 주소 복사</button></div>` : ''}
             <p class="sheet-hint">카드사를 바꾸거나 추가하면 <b>설정 파일을 다시 받아</b> 가져와 주세요.</p>
-            <p class="sheet-hint">직접 만들 때: 트리거 <b>알림 수신</b>(카드사 앱) → 액션 <b>HTTP 요청</b>, POST, 위 주소, 본문 <b>{notification}</b>, text/plain.</p>
+            <p class="sheet-hint">직접 만들 때: 트리거 <b>알림 수신</b>(카드사 앱) → 액션 <b>HTTP 요청</b>, POST, 위 주소, 본문 <b>{not_title}</b> 줄바꿈 <b>{notification}</b>(알림 제목+내용), text/plain.</p>
             <div class="auto-test">
               <label for="autoTestText">알림 글자 시험해보기</label>
               <textarea id="autoTestText" rows="2" placeholder="[KB Pay 사용 알림] 신용 0011 11/10 14:02 3,500원 아마노코리아본사 승인"></textarea>
