@@ -4,7 +4,7 @@
 //  · 모든 요청은 POST(JSON). 로그인 후 받은 '토큰'으로 인증한다.
 //    (비밀번호는 주소창에 실리지 않고, 시트에는 해시로 저장된다)
 //  · 시트 구성
-//      Users    : 아이디 | 비밀번호(해시) | 이름 | 그룹ID | 카카오ID | 가입시각 | 상태 | 자동기록키(해시)
+//      Users    : 아이디 | 비밀번호(해시) | 이름 | 그룹ID | 카카오ID | 가입시각 | 상태 | 자동기록키(해시) | 사용방식(solo/family)
 //                 ← 로그인은 카카오만. 새 가입은 '대기'로 들어오고 운영자가 앱에서 승인
 //                   (상태: 빈칸=사용 중, pending=승인 대기, rejected=거절)
 //      Data     : 아이디 | 고정지출 데이터(JSON) | 요약(JSON) | 수정시각
@@ -112,6 +112,7 @@ function handleApi(action, body) {
     case 'groupCreate':   return withLock(function () { return groupCreate(user, body.name); });
     case 'groupJoin':     return withLock(function () { return groupJoin(user, body.code); });
     case 'groupLeave':    return withLock(function () { return groupLeave(user); });
+    case 'setMode':       return withLock(function () { return setMode(user, body.mode); });
     case 'entryAdd':      return withLock(function () { return entryAdd(user, body); });
     case 'entryUpdate':   return withLock(function () { return entryUpdate(user, body); });
     case 'entryDelete':   return withLock(function () { return entrySetDeleted(user, body.id, 1); });
@@ -230,7 +231,7 @@ function getUserInfo(username) {
     if (String(data[i][0]) === String(username)) {
       return { sheet: sheet, row: i + 1, username: String(data[i][0]), name: data[i][2] || String(data[i][0]), groupId: String(data[i][3] || ''),
         kakaoId: String(data[i][4] || ''), kakaoOnly: String(data[i][1] || '').indexOf('kakao$') === 0, status: String(data[i][6] || ''),
-        autoKey: String(data[i][7] || '') };
+        autoKey: String(data[i][7] || ''), mode: String(data[i][8] || '') };
     }
   }
   return null;
@@ -310,6 +311,7 @@ function groupCreate(user, name) {
   const code = makeInviteCode();
   sh.appendRow([groupId, gname, code, user, new Date()]);
   me.sheet.getRange(me.row, 4).setValue(groupId);
+  if (me.mode !== 'solo') me.sheet.getRange(me.row, 9).setValue('family');
   bumpRev(user, ''); bumpGroupMembersRev(groupId);
   return { success: true, group: { groupId: groupId, name: gname, inviteCode: code } };
 }
@@ -317,7 +319,9 @@ function groupCreate(user, name) {
 function groupJoin(user, code) {
   const me = getUserInfo(user);
   if (!me) return { success: false, message: '계정을 찾을 수 없습니다.' };
-  if (me.groupId) return { success: false, message: '이미 가족 그룹에 속해 있습니다. 먼저 나가기를 해주세요.' };
+  // 나 혼자 있는 그룹(혼자 쓰기)이면 그대로 기록을 들고 옮겨 갈 수 있음
+  const oldGid = me.groupId;
+  if (oldGid && getGroupMembers(oldGid).length > 1) return { success: false, message: '이미 가족 그룹에 속해 있습니다. 먼저 나가기를 해주세요.' };
 
   // 초대코드 무작위 대입 방지: 10분에 10번까지
   const cache = CacheService.getScriptCache();
@@ -341,9 +345,13 @@ function groupJoin(user, code) {
   if (getGroupMembers(found.groupId).length >= MAX_GROUP_MEMBERS) {
     return { success: false, message: '이 그룹은 정원(' + MAX_GROUP_MEMBERS + '명)이 찼습니다.' };
   }
+  if (oldGid === found.groupId) return { success: false, message: '이미 이 그룹에 있어요.' };
+  const moved = oldGid ? moveMyEntries(user, oldGid, found.groupId) : 0;
   me.sheet.getRange(me.row, 4).setValue(found.groupId);
+  me.sheet.getRange(me.row, 9).setValue('family');
   bumpRev(user, ''); bumpGroupMembersRev(found.groupId);
-  return { success: true, group: found };
+  if (oldGid) bumpGroupMembersRev(oldGid);
+  return { success: true, group: found, moved: moved };
 }
 
 function groupLeave(user) {
@@ -352,8 +360,46 @@ function groupLeave(user) {
   if (!me.groupId) return { success: true };
   const gid = me.groupId;
   me.sheet.getRange(me.row, 4).setValue('');
+  me.sheet.getRange(me.row, 9).setValue('');   // 다시 사용 방식 고르기
   bumpRev(user, ''); bumpGroupMembersRev(gid);
   return { success: true };
+}
+
+// 사용 방식: solo(혼자 쓰기) / family(가족과 함께)
+function setMode(user, mode) {
+  const me = getUserInfo(user);
+  if (!me) return { success: false, message: '계정을 찾을 수 없습니다.' };
+  if (mode !== 'solo' && mode !== 'family') return { success: false, message: '알 수 없는 사용 방식이에요.' };
+  if (mode === 'solo') {
+    if (me.groupId && getGroupMembers(me.groupId).length > 1) return { success: false, message: '가족과 함께 쓰는 중이에요. 혼자 쓰려면 먼저 설정에서 그룹 나가기를 해주세요.' };
+    if (!me.groupId) {
+      const sh = ensureSheet(getSS(), 'Groups', GROUP_HEADERS);
+      const groupId = 'g' + Utilities.getUuid().replace(/-/g, '').slice(0, 10);
+      sh.appendRow([groupId, String(me.name).slice(0, 14) + '의 가계부', makeInviteCode(), user, new Date()]);
+      me.sheet.getRange(me.row, 4).setValue(groupId);
+      me.groupId = groupId;
+    }
+  }
+  if (mode === 'family' && me.groupId) {
+    // 혼자 쓰던 '○○의 가계부' 이름을 가족용으로
+    const gs = getSS().getSheetByName('Groups'), gd = gs ? gs.getDataRange().getValues() : [];
+    for (let i = 1; i < gd.length; i++) if (String(gd[i][0]) === me.groupId && /의 가계부$/.test(String(gd[i][1]))) { gs.getRange(i + 1, 2).setValue(String(me.name).slice(0, 14) + '네 가족'); break; }
+  }
+  me.sheet.getRange(me.row, 9).setValue(mode);
+  bumpRev(user, ''); if (me.groupId) bumpGroupMembersRev(me.groupId);
+  return { success: true, mode: mode };
+}
+// 혼자 쓰던 기록을 새 가족 그룹으로 옮김
+function moveMyEntries(user, fromGid, toGid) {
+  const sh = getSS().getSheetByName('Entries');
+  if (!sh) return 0;
+  const data = sh.getDataRange().getValues();
+  const gi = ENTRY_HEADERS.indexOf('groupId'), oi = ENTRY_HEADERS.indexOf('owner');
+  let n = 0;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][gi]) === fromGid && String(data[i][oi]) === user) { sh.getRange(i + 1, gi + 1).setValue(toGid); n++; }
+  }
+  return n;
 }
 
 // -------------------------------------------------------------
@@ -523,7 +569,8 @@ function syncAll(user, body) {
   }
 
   const out = { success: true, rev: combined, serverTime: Date.now(), ym: ym, me: { username: me.username, name: me.name, groupId: me.groupId, kakao: !!me.kakaoId, kakaoOnly: !!me.kakaoOnly, admin: isAdmin(me), pending: isAdmin(me) ? pendingCount() : 0,
-      auto: !!me.autoKey, autoLast: Number(CacheService.getScriptCache().get('al_' + me.username) || 0) || null }, group: null, entries: [] };
+      auto: !!me.autoKey, autoLast: Number(CacheService.getScriptCache().get('al_' + me.username) || 0) || null,
+      mode: me.mode || (me.groupId && getGroupMembers(me.groupId).length >= 2 ? 'family' : '') }, group: null, entries: [] };
 
   const dataSheet = getSS().getSheetByName('Data');
   const mine = dataSheet ? findDataRow(dataSheet, user) : null;
