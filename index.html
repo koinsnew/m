@@ -762,6 +762,27 @@
     .adm-merge { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #E2E8F0; }
     .adm-merge label { font-size: 12.5px; color: #475569; font-weight: 600; margin: 0 0 6px; display: block; }
     .adm-merge select { flex: 1; min-height: 42px; border-radius: 10px; border: 1px solid #CBD5E1; padding: 0 10px; font-family: inherit; font-size: 14px; background: #fff; min-width: 0; }
+    .mode-screen { position: fixed; inset: 0; z-index: 9000; background: rgba(5,10,20,0.72); display: flex; align-items: flex-end; justify-content: center; }
+    .mode-screen[hidden] { display: none; }
+    .mode-box { width: 100%; max-width: 520px; background: #fff; border-radius: 22px 22px 0 0; padding: 26px 20px calc(24px + env(safe-area-inset-bottom)); max-height: 92vh; overflow-y: auto; }
+    .mode-box h2 { margin: 0 0 6px; font-size: 22px; font-weight: 800; color: #0B192C; }
+    .mode-sub { margin: 0 0 16px; font-size: 15px; line-height: 1.55; color: #475569; }
+    .mode-card { width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; min-height: 88px; padding: 16px; margin-bottom: 12px; border-radius: 16px; border: 2px solid #CBD5E1; background: #fff; font-family: inherit; cursor: pointer; }
+    .mode-card:active { transform: scale(0.98); border-color: #1E3A8A; }
+    .mode-card:disabled { opacity: 0.6; }
+    .mode-ico { flex-shrink: 0; width: 52px; height: 52px; border-radius: 14px; background: #EEF2F9; color: #1E3A8A; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .mode-ico.fam { background: #FFFCF0; color: #A16207; }
+    .mode-txt { display: flex; flex-direction: column; gap: 4px; }
+    .mode-txt b { font-size: 18px; color: #0F172A; } .mode-txt span { font-size: 14.5px; color: #64748B; line-height: 1.45; }
+    .mode-label { display: block; font-size: 15px; font-weight: 700; color: #334155; margin: 4px 0 8px; }
+    #modeStep2 .join-row input { min-height: 52px; font-size: 18px; letter-spacing: 3px; font-weight: 700; }
+    #modeStep2 .join-row button { min-height: 52px; font-size: 16px; padding: 0 20px; }
+    .mode-or { display: flex; align-items: center; gap: 10px; margin: 18px 0 14px; color: #94A3B8; font-size: 13px; font-weight: 700; }
+    .mode-or::before, .mode-or::after { content: ''; flex: 1; height: 1px; background: #E2E8F0; }
+    .mode-make { width: 100%; min-height: 54px; border-radius: 14px; border: none; background: #1E3A8A; color: #fff; font-size: 17px; font-weight: 800; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .mode-make:disabled { opacity: 0.7; }
+    .mode-back { display: block; width: 100%; min-height: 46px; margin-top: 10px; background: none; border: none; color: #475569; font-size: 15px; font-family: inherit; cursor: pointer; }
+    .mode-now { font-size: 16px; color: #0F172A; margin: 4px 0 6px; }
     .auto-sec h3 { font-size: 18px; }
     .auto-lead { font-size: 16px; line-height: 1.6; color: #334155; margin: 6px 0 4px; }
     .auto-lead small { font-size: 13.5px; color: #64748B; }
@@ -1120,6 +1141,36 @@
         </div>
       </div>
     </nav>
+  </div>
+
+  <div id="modeScreen" class="mode-screen" role="dialog" aria-modal="true" aria-labelledby="modeTitle" hidden>
+    <div class="mode-box">
+      <div id="modeStep1">
+        <h2 id="modeTitle">어떻게 쓰실 건가요?</h2>
+        <p class="mode-sub">나중에 설정에서 언제든 바꿀 수 있어요.</p>
+        <button type="button" class="mode-card" onclick="chooseMode('solo')">
+          <span class="mode-ico" aria-hidden="true"><i class="fas fa-user"></i></span>
+          <span class="mode-txt"><b>혼자 쓸래요</b><span>나만 보는 가계부예요. 바로 시작할 수 있어요.</span></span>
+        </button>
+        <button type="button" class="mode-card" onclick="chooseMode('family')">
+          <span class="mode-ico fam" aria-hidden="true"><i class="fas fa-people-roof"></i></span>
+          <span class="mode-txt"><b>가족과 함께 쓸래요</b><span>부부·가족이 같이 기록하고 함께 봐요.</span></span>
+        </button>
+      </div>
+      <div id="modeStep2" hidden>
+        <h2>가족 가계부 연결</h2>
+        <p class="mode-sub">가족이 이미 만들었으면 <b>초대 코드</b>를 넣고, 처음이면 <b>새로 만들기</b>를 누르세요.</p>
+        <label class="mode-label" for="modeCode">가족에게 받은 초대 코드</label>
+        <div class="join-row">
+          <input type="text" id="modeCode" placeholder="6자리 코드" autocomplete="off" autocapitalize="characters" oninput="normCode(this)" onkeydown="if(event.key==='Enter') joinGroup('modeCode', 'modeJoinBtn')">
+          <button class="btn-primary" id="modeJoinBtn" onclick="joinGroup('modeCode', 'modeJoinBtn')">참여</button>
+        </div>
+        <div class="mode-or"><span>또는</span></div>
+        <button type="button" class="mode-make" id="modeMakeBtn" onclick="modeCreateFamily()"><i class="fas fa-plus"></i> 새 가족 가계부 만들기</button>
+        <p class="mode-sub" style="margin-top:8px">만들면 초대 코드가 생겨요. 그 코드를 가족에게 보내주세요.</p>
+        <button type="button" class="mode-back" onclick="modeBack()"><i class="fas fa-arrow-left"></i> 뒤로</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast" role="status" aria-live="polite"></div>
@@ -2325,6 +2376,7 @@
       const prevIds = new Set(entries.map(e => e.id));
       me = res.me; group = res.group || null; entries = res.entries || [];
       renderAdminBadge();
+      checkModeScreen();
       syncRev = res.rev || syncRev;
       lastSyncAt = Date.now();
       if (!silent && hasSynced && !sheetStack.length) {
@@ -3236,9 +3288,19 @@
           <p class="sheet-hint" style="margin-top:2px">카카오로 가입 신청한 사람이에요. 예전 아이디를 쓰던 가족이면 '합치기'를 하면 기록이 그대로 이어져요.</p>
           <div id="adminBox"></div>
         </div>` : '';
-      if (!group) {
+      const solo = me && me.mode === 'solo';
+      if (solo) {
         b.innerHTML = `
-          ${reason === 'entry' ? '<p class="sheet-hint" style="margin:0 0 14px; padding:12px; border-radius:12px; background:#FFFCF0; border:1px solid #E9D48A; color:#374151">기록은 가족 그룹 안에 저장돼요. 혼자 쓰셔도 그룹을 먼저 만들어 주세요.</p>' : ''}
+          <div class="sheet-section mode-sec">
+            <h3>사용 방식</h3>
+            <p class="mode-now"><i class="fas fa-user"></i> 지금은 <b>혼자 쓰기</b>로 쓰고 있어요.</p>
+            <p class="sheet-hint">가족과 함께 쓰면 부부·가족이 같은 가계부에 기록하고, 서로의 고정지출도 함께 볼 수 있어요. 지금까지 쓴 기록은 그대로 이어져요.</p>
+            <button class="mode-make" style="margin-top:10px" onclick="switchToFamily()"><i class="fas fa-people-roof"></i> 가족과 함께 쓰기로 바꾸기</button>
+          </div>
+          ${adminSec}${autoSection()}${account}`;
+      } else if (!group) {
+        b.innerHTML = `
+          ${reason === 'entry' ? '<p class="sheet-hint" style="margin:0 0 14px; padding:12px; border-radius:12px; background:#FFFCF0; border:1px solid #E9D48A; color:#374151">기록하려면 가족 가계부를 만들거나 참여해 주세요. 혼자 쓰실 거면 아래 <b>혼자 쓰기로 바꾸기</b>를 누르세요.</p>' : ''}
           <div class="sheet-section">
             <h3>초대 코드로 참여</h3>
             <p class="sheet-hint" style="margin-top:2px">배우자에게 받은 6자리 코드를 입력하세요.</p>
@@ -3254,6 +3316,9 @@
             <input type="text" id="famName" maxlength="20" placeholder="예: 우리집" autocomplete="off">
             <div class="sheet-row"><button class="btn-ghost" id="famCreateBtn" onclick="createGroup()">그룹 만들기</button></div>
           </div>
+          <div class="sheet-section">
+            <div class="sheet-row"><button class="btn-ghost" onclick="switchToSolo()"><i class="fas fa-user"></i> 혼자 쓰기로 바꾸기</button></div>
+          </div>
           ${adminSec}${autoSection()}${account}`;
       } else {
         b.innerHTML = `
@@ -3267,13 +3332,67 @@
               <div class="sheet-row" style="margin-top:0"><button class="btn-ghost" onclick="copyInvite()"><i class="far fa-copy"></i> 복사</button><button class="btn-primary" onclick="shareInvite()"><i class="fas fa-share-nodes"></i> 공유</button></div>
             </div>
             <p class="sheet-hint">가족이 로그인한 뒤 설정의 <b>초대 코드로 참여</b>(또는 홈의 초대 코드 칸)에 이 코드를 넣으면 이 그룹에 들어와요. 같은 그룹이면 서로의 고정지출도 볼 수 있어요(수정은 본인만).</p>
-            <div class="sheet-row"><button class="btn-ghost" style="color:#B91C1C; border-color:#FCA5A5" onclick="leaveGroup()">그룹 나가기</button></div>
+            ${group.members.length > 1 ? `<div class="sheet-row"><button class="btn-ghost" style="color:#B91C1C; border-color:#FCA5A5" onclick="leaveGroup()">그룹 나가기</button></div>` : ''}
           </div>
+          ${group.members.length === 1 ? `
+          <div class="sheet-section">
+            <h3>가족이 만든 가계부에 들어가기</h3>
+            <p class="sheet-hint" style="margin-top:2px">가족이 이미 가계부를 만들었다면 그 초대 코드를 넣으세요. 지금까지 쓴 기록도 함께 옮겨져요.</p>
+            <div class="join-row" style="margin-top:10px">
+              <input type="text" id="famCode" placeholder="초대 코드" autocomplete="off" autocapitalize="characters" aria-label="초대 코드 6자리" oninput="normCode(this)" onkeydown="if(event.key==='Enter') joinGroup('famCode', 'famJoinBtn')">
+              <button class="btn-primary" id="famJoinBtn" onclick="joinGroup('famCode', 'famJoinBtn')">참여</button>
+            </div>
+            <div class="sheet-row" style="margin-top:12px"><button class="btn-ghost" onclick="switchToSolo()"><i class="fas fa-user"></i> 혼자 쓰기로 바꾸기</button></div>
+          </div>` : ''}
           ${adminSec}${autoSection()}${account}`;
       }
       hideIcons(b);
       if (me && me.admin) adminLoad();
     }
+    /* ===== 사용 방식: 혼자 쓰기 / 가족과 함께 ===== */
+    function checkModeScreen() {
+      const need = !!(me && !me.mode);
+      const el = $('modeScreen');
+      if (need && el.hidden) { $('modeStep1').hidden = false; $('modeStep2').hidden = true; el.hidden = false; document.body.style.overflow = 'hidden'; hideIcons(el); }
+      if (!need && !el.hidden) closeModeScreen();
+    }
+    function closeModeScreen() { $('modeScreen').hidden = true; document.body.style.overflow = ''; }
+    function modeBack() { $('modeStep2').hidden = true; $('modeStep1').hidden = false; }
+    function chooseMode(mode) {
+      const cards = document.querySelectorAll('#modeStep1 .mode-card'); cards.forEach(c => c.disabled = true);
+      apiCall('setMode', { mode: mode }).then(res => {
+        cards.forEach(c => c.disabled = false);
+        if (!res || !res.success) { showToast((res && res.message) || '저장하지 못했어요', true); return; }
+        if (me) me.mode = mode;
+        if (mode === 'solo') { closeModeScreen(); showToast('혼자 쓰기로 시작해요. 가족과 함께 쓰려면 설정에서 바꿀 수 있어요'); afterGroupChange(); }
+        else if (group) { closeModeScreen(); afterGroupChange().then(() => openFamily()); }
+        else { $('modeStep1').hidden = true; $('modeStep2').hidden = false; setTimeout(() => $('modeCode').focus(), 50); }
+      }).catch(() => { cards.forEach(c => c.disabled = false); showToast('인터넷 연결을 확인해주세요', true); });
+    }
+    function modeCreateFamily() {
+      const btn = $('modeMakeBtn'); btn.disabled = true;
+      apiCall('groupCreate', { name: (me ? me.name : '') + '네 가족' }).then(res => {
+        btn.disabled = false;
+        if (res && res.success) { closeModeScreen(); showToast('가족 가계부를 만들었어요. 초대 코드를 가족에게 보내주세요'); afterGroupChange().then(() => openFamily()); }
+        else showToast((res && res.message) || '만들지 못했어요', true);
+      }).catch(() => { btn.disabled = false; showToast('인터넷 연결을 확인해주세요', true); });
+    }
+    function switchToFamily() {
+      apiCall('setMode', { mode: 'family' }).then(res => {
+        if (res && res.success) { if (me) me.mode = 'family'; showToast('가족과 함께 쓰기로 바꿨어요. 초대 코드를 가족에게 보내거나, 가족의 코드를 넣어주세요'); afterGroupChange(); }
+        else showToast((res && res.message) || '바꾸지 못했어요', true);
+      }).catch(() => showToast('인터넷 연결을 확인해주세요', true));
+    }
+    function switchToSolo() {
+      askConfirm({ title: '혼자 쓰기로 바꿀까요?', msg: '가족 메뉴가 숨겨져요. 기록은 그대로 남아요.', ok: '바꾸기', cancel: '취소' }).then(ok => {
+        if (!ok) return;
+        apiCall('setMode', { mode: 'solo' }).then(res => {
+          if (res && res.success) { if (me) me.mode = 'solo'; showToast('혼자 쓰기로 바꿨어요'); afterGroupChange(); }
+          else showToast((res && res.message) || '바꾸지 못했어요', true);
+        }).catch(() => showToast('인터넷 연결을 확인해주세요', true));
+      });
+    }
+
     function afterGroupChange() {
       return syncNow({ force: true }).then(() => { renderFamilyBody(); renderHousehold(); });
     }
