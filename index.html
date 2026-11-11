@@ -864,6 +864,26 @@
     .st-cal .sat { color: #1D4ED8; } .st-cal .sun { color: #B91C1C; }
     .st-cal span.ns { background: #F6E7B8; font-weight: 700; }
     .st-cal span.fut { color: #94A3B8; }
+    .st-cal button { font: inherit; font-size: 14px; min-height: 38px; padding: 0; border: none; border-radius: 8px; background: transparent; color: #0F172A; cursor: pointer; position: relative; }
+    .st-cal button.sat { color: #1D4ED8; } .st-cal button.sun { color: #B91C1C; }
+    .st-cal button.ns { background: #F6E7B8; font-weight: 700; }
+    .st-cal button.fut { color: #94A3B8; }
+    .st-cal button.has::after { content: ''; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #B91C1C; }
+    .st-cal button.sel { background: #0B192C; color: #fff; font-weight: 800; }
+    .st-cal button.sel::after { background: #fff; }
+    .st-cal-tip { margin-left: auto; font-size: 12px; color: #64748B; }
+    .st-day { margin: 0 10px 12px; }
+    .st-day:empty { display: none; }
+    .st-day-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px; border-radius: 12px 12px 0 0; background: #F8FAFC; border: 1px solid #E2E8F0; font-size: 15px; font-weight: 700; color: #0F172A; }
+    .st-day-head b { font-size: 18px; } .st-day-head b.neg { color: #B91C1C; }
+    .st-day-list { list-style: none; margin: 0; padding: 0 14px; border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; }
+    .st-day-list li { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px dotted #CBD5E1; }
+    .st-day-list li:last-child { border-bottom: none; }
+    .sdl-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .sdl-main > span { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sdl-main small { font-size: 12px; color: #64748B; }
+    .st-day-list b { font-size: 14.5px; white-space: nowrap; }
+    .st-day-none { margin: 0; padding: 12px 14px; border: 1px solid #E2E8F0; border-top: none; border-radius: 0 0 12px 12px; font-size: 13.5px; color: #047857; font-weight: 600; }
     .st-cal-note { padding: 4px 14px 12px; font-size: 12.5px; color: #475569; display: flex; align-items: center; gap: 6px; }
     .st-ns-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: #F6E7B8; }
     .st-top { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -2777,8 +2797,28 @@
       const today = new Date(), isCur = viewYm === curYm();
       const upto = isCur ? today.getDate() : (viewYm > curYm() ? 0 : nd);
       let noSpend = 0; for (let i = 0; i < upto; i++) if (!daily[i]) noSpend++;
-      return { members, people, income, spend, save, fixed, vari, fCard, fLoan, fCash, fSave, slices, daily, nd, upto, noSpend,
+      const spendsAll = spends.slice();
+      return { members, people, income, spend, save, fixed, vari, fCard, fLoan, fCash, fSave, slices, daily, nd, upto, noSpend, spendsAll,
         top: spends.sort((a, b) => b.amount - a.amount).slice(0, 5), names };
+    }
+
+    let stDay = null, stDayYm = null, stLastS = null;
+    const DOW_KO = ['일', '월', '화', '수', '목', '금', '토'];
+    function stDayHtml(S) {
+      if (!stDay) return '';
+      const p = viewYm.split('-').map(Number);
+      const dow = DOW_KO[new Date(p[0], p[1] - 1, stDay).getDay()];
+      const list = S.spendsAll.filter(e => Number(String(e.date).slice(8, 10)) === stDay).sort((a, b) => b.amount - a.amount);
+      const total = list.reduce((a, e) => a + e.amount, 0);
+      const multi = S.names.length > 1;
+      return `<div class="st-day-head"><span>${p[1]}월 ${stDay}일 (${dow})</span><b class="${total ? 'neg' : ''}">${total ? num(total) + '원' : '0원'}</b></div>
+        ${list.length ? `<ul class="st-day-list">${list.map(e => `<li>${multi ? `<i class="st-pdot" style="background:${memberColor(e.owner)}" aria-hidden="true"></i>` : ''}<span class="sdl-main"><span>${esc(cleanMemo(e.memo) || e.category)}</span><small>${esc(e.category)}${multi ? ' · ' + esc(whoLabel(e.owner)) : ''}${isAutoMemo(e.memo) ? ' · 자동' : ''}</small></span><b>${num(e.amount)}</b></li>`).join('')}</ul>`
+          : `<p class="st-day-none">${stDay <= S.upto ? '이날은 기록한 지출이 없어요 · 무지출 Day' : '아직 오지 않은 날이에요'}</p>`}`;
+    }
+    function stPickDay(d) {
+      stDay = stDay === d ? null : d; stDayYm = viewYm;
+      document.querySelectorAll('#statsBody .st-cal button').forEach(b => { const on = Number(b.dataset.d) === stDay; b.classList.toggle('sel', on); b.setAttribute('aria-pressed', on); });
+      const box = $('stDayBox'); if (box && stLastS) box.innerHTML = stDayHtml(stLastS);
     }
 
     function stWho() {
@@ -2813,11 +2853,14 @@
       for (let d = 1; d <= nd; d++) {
         const dow = (first + d - 1) % 7;
         const ns = d <= S.upto && !S.daily[d - 1];
-        cells += `<span class="${dow === 5 ? 'sat' : dow === 6 ? 'sun' : ''}${ns ? ' ns' : ''}${d > S.upto ? ' fut' : ''}">${d}</span>`;
+        const cls = `${dow === 5 ? 'sat' : dow === 6 ? 'sun' : ''}${ns ? ' ns' : ''}${d > S.upto ? ' fut' : ''}${S.daily[d - 1] ? ' has' : ''}`;
+        cells += wide ? `<span class="${cls}">${d}</span>`
+          : `<button type="button" class="${cls}${stDay === d ? ' sel' : ''}" data-d="${d}" onclick="stPickDay(${d})" aria-label="${p[1]}월 ${d}일${S.daily[d - 1] ? ', 지출 ' + num(S.daily[d - 1]) + '원' : ''}" aria-pressed="${stDay === d}">${d}</button>`;
       }
       const cal = `<div class="st-box"><div class="st-bar">이달의 무지출 Day <small>(고정지출 제외)</small></div>
         <div class="st-cal"><b>월</b><b>화</b><b>수</b><b>목</b><b>금</b><b class="sat">토</b><b class="sun">일</b>${cells}</div>
-        <div class="st-cal-note"><i class="st-ns-dot"></i> 무지출 <b>${S.noSpend}일</b>${S.upto ? ' / ' + S.upto + '일' : ''}</div></div>`;
+        <div class="st-cal-note"><i class="st-ns-dot"></i> 무지출 <b>${S.noSpend}일</b>${S.upto ? ' / ' + S.upto + '일' : ''}${wide ? '' : '<span class="st-cal-tip">날짜를 누르면 그날 지출이 나와요</span>'}</div>
+        ${wide ? '' : `<div class="st-day" id="stDayBox" aria-live="polite">${stDayHtml(S)}</div>`}</div>`;
       const comp = `<div class="st-box"><div class="st-bar">지출 구성</div>
         <dl class="st-dl">
           <div><dt>카드 고정 <small>(할인 후)</small></dt><dd>${num(S.fCard)}</dd></div>
@@ -2960,6 +3003,8 @@
       $('statsNext').disabled = viewYm >= curYm();
       renderStatsTabs();
       const S = statsData(), box = $('statsBody');
+      if (stDayYm !== viewYm) { stDayYm = viewYm; stDay = viewYm === curYm() ? new Date().getDate() : null; }
+      stLastS = S;
       box.innerHTML = statsHtml(S, false);
       requestAnimationFrame(() => drawStats(box, S, false));
       const pym = prevYmOf(viewYm);
