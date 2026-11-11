@@ -803,6 +803,9 @@
     .card-pick[aria-pressed="true"] { border-color: #1E3A8A; background: #EEF2F9; color: #1E3A8A; box-shadow: inset 0 0 0 1px #1E3A8A; }
     .card-pick { position: relative; }
     .card-pick[aria-pressed="true"]::after { content: '✓'; position: absolute; top: 4px; right: 8px; font-size: 14px; font-weight: 900; color: #1E3A8A; }
+    .card-pick.fixed { border-color: #047857; background: #ECFDF5; color: #065F46; cursor: default; }
+    .card-pick.fixed small { color: #047857; }
+    .card-pick.fixed::after { content: '✓'; position: absolute; top: 4px; right: 8px; font-size: 14px; font-weight: 900; color: #047857; }
     .card-pick-count { font-size: 14px; font-weight: 700; color: #1E3A8A; min-height: 18px; }
     .auto-tag { display: inline-block; font-size: 10.5px; font-weight: 800; color: #1E3A8A; background: #EEF2F9; border: 1px solid #C9D3E6; border-radius: 6px; padding: 0 5px; margin-right: 5px; line-height: 16px; vertical-align: 1px; }
     .auto-state { font-size: 12px; font-weight: 700; color: #64748B; background: #F1F5F9; border-radius: 10px; padding: 2px 8px; margin-left: 6px; vertical-align: 2px; }
@@ -3455,9 +3458,8 @@
       ['BC카드', '페이북', 'kvp.jjy.MispAndroid320'],
       ['카카오뱅크', '카카오뱅크', 'com.kakaobank.channel'],
       ['카카오페이', '카카오페이', 'com.kakaopay.app'],
-      ['토스카드', '토스', 'viva.republica.toss'],
-      ['문자 메시지', '카드 승인 문자', 'sms']
-    ];
+      ['토스카드', '토스', 'viva.republica.toss']
+    ];   // 카드 승인 문자(삼성·구글 메시지)는 항상 기본 포함
     // 문자앱(삼성 메시지·구글 메시지) — '승인/취소'와 'OO원'이 둘 다 있는 문자만 보냄
     const SMS_APPS = [['메시지', 'com.samsung.android.messaging'], ['메시지(Google)', 'com.google.android.apps.messaging']];
     const SMS_REGEX = '(?s)(?=.*(승인|취소))(?=.*[0-9][0-9,]*원).*';
@@ -3467,7 +3469,7 @@
       if (i >= 0) cur.splice(i, 1); else cur.push(pkg);
       try { localStorage.setItem('ss_cardapps', JSON.stringify(cur)); } catch (e) {}
       btn.setAttribute('aria-pressed', i < 0);
-      const n = $('cardPickCount'); if (n) n.textContent = cur.length ? cur.length + '곳 골랐어요' : '';
+      const n = $('cardPickCount'); if (n) n.textContent = cur.length ? cur.length + '곳 + 문자' : '문자만 기록돼요';
     }
     function autoUrl(k) { return SCRIPT_URL + '?action=tx&key=' + k; }
     function rndLong() { let d = String(1 + Math.floor(Math.random() * 8)); for (let i = 0; i < 17; i++) d += Math.floor(Math.random() * 10); return '-' + d; }
@@ -3482,10 +3484,10 @@
       };
     }
     function buildMacro(key, pkgs) {
-      const apps = CARD_APPS.filter(c => c[2] !== 'sms' && pkgs.indexOf(c[2]) >= 0);
+      const apps = CARD_APPS.filter(c => pkgs.indexOf(c[2]) >= 0);
       const triggers = [];
       if (apps.length) triggers.push(notiTrigger(apps.map(x => x[1]), apps.map(x => x[2]), ''));
-      if (pkgs.indexOf('sms') >= 0) triggers.push(notiTrigger(SMS_APPS.map(x => x[0]), SMS_APPS.map(x => x[1]), SMS_REGEX));
+      triggers.push(notiTrigger(SMS_APPS.map(x => x[0]), SMS_APPS.map(x => x[1]), SMS_REGEX));   // 문자는 항상
       const m = {
         macro: {
           aiGenerated: 0, breakpoints: [], disabledTimestamp: 0, exportedActionBlocks: [], forceEvenIfNotEnabledTimestamp: 0,
@@ -3538,9 +3540,9 @@
             </li>
             <li>
               <div class="as-num">2</div>
-              <div class="as-body"><b>쓰는 카드사 고르기</b><span>결제 알림을 받는 카드사를 눌러주세요. 여러 곳을 골라도 돼요. 승인 알림이 <b>문자</b>로 오면 맨 아래 <b>문자 메시지</b>도 골라주세요.</span>
-                <div class="card-picks">${(() => { const mine = myCardApps(); return CARD_APPS.map(c => `<button type="button" class="card-pick" aria-pressed="${mine.indexOf(c[2]) >= 0}" onclick="toggleCardApp('${c[2]}', this)">${c[0]}<small>${c[1]}</small></button>`).join(''); })()}</div>
-                <span class="card-pick-count" id="cardPickCount">${myCardApps().length ? myCardApps().length + '곳 골랐어요' : ''}</span></div>
+              <div class="as-body"><b>쓰는 카드사 고르기</b><span>카드사 <b>앱</b>으로 결제 알림을 받으면 그 카드사를 눌러주세요. 여러 곳을 골라도 돼요. 카드 승인 <b>문자</b>는 따로 고르지 않아도 늘 기록돼요.</span>
+                <div class="card-picks">${(() => { const mine = myCardApps(); return CARD_APPS.map(c => `<button type="button" class="card-pick" aria-pressed="${mine.indexOf(c[2]) >= 0}" onclick="toggleCardApp('${c[2]}', this)">${c[0]}<small>${c[1]}</small></button>`).join(''); })()}<div class="card-pick fixed" aria-label="카드 승인 문자, 기본 포함">문자 메시지<small>기본 포함</small></div></div>
+                <span class="card-pick-count" id="cardPickCount">${myCardApps().length ? myCardApps().length + '곳 + 문자' : '문자만 기록돼요'}</span></div>
             </li>
             <li>
               <div class="as-num">3</div>
@@ -3584,7 +3586,6 @@
     // 설정 파일 받기: 새 개인 주소를 만들고 그 주소가 들어간 파일을 내려받음
     function autoGetFile() {
       const pkgs = myCardApps();
-      if (!pkgs.length) { showToast('먼저 2번에서 쓰는 카드사를 골라주세요', true); const el = document.querySelector('.card-picks'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
       const go = () => {
         const btn = $('btnMacro'); if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 만드는 중...'; }
         apiCall('autoKeyCreate', {}).then(res => {
