@@ -19,7 +19,7 @@ const TZ = 'Asia/Seoul';
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;   // 로그인 유지 30일
 const MAX_LOGIN_FAILS = 8;                        // 10분 내 실패 허용 횟수
 const MAX_GROUP_MEMBERS = 6;
-const ENTRY_HEADERS = ['id', 'groupId', 'owner', 'ownerName', 'type', 'date', 'category', 'amount', 'memo', 'createdAt', 'updatedAt', 'deleted'];
+const ENTRY_HEADERS = ['id', 'groupId', 'owner', 'ownerName', 'type', 'date', 'category', 'amount', 'memo', 'createdAt', 'updatedAt', 'deleted', 'pay'];
 const GROUP_HEADERS = ['groupId', 'name', 'inviteCode', 'createdBy', 'createdAt'];
 // 카카오 로그인: 스크립트 속성 KAKAO_REST_KEY, KAKAO_CLIENT_SECRET 에 키 보관
 // 운영자: 이름이 아래와 같고 예전부터 쓰던(비밀번호가 있는) 계정, 또는 스크립트 속성 ADMIN_USERS(아이디, 쉼표 구분)
@@ -42,7 +42,7 @@ function doGet(e) {
     if (!p.action || p.action === 'ping') {
       result = { success: true, message: 'API 정상 작동 중입니다.' };
     } else if (p.action === 'tx') {
-      result = withLock(function () { return autoTx(p.key || '', p.text || p.message || ''); });
+      result = withLock(function () { return autoTx(p.key || '', p.text || p.message || '', p.app || ''); });
     } else {
       result = { success: false, code: 'OUTDATED', message: '화면이 업데이트되었습니다. 새로고침 해주세요.' };
     }
@@ -62,7 +62,7 @@ function doPost(e) {
   try {
     const p = (e && e.parameter) ? e.parameter : {};
     const raw = (e && e.postData && e.postData.contents) ? e.postData.contents : '';
-    if (raw.length > 200000) {
+    if (raw.length > 1500000 || (raw.length > 200000 && raw.indexOf('"ocrEntries"') < 0)) {
       result = { success: false, message: '요청이 너무 큽니다.' };
     } else {
       let body = {};
@@ -73,7 +73,7 @@ function doPost(e) {
       if (action === 'tx') {
         // 폰 자동화: 주소에 ?action=tx&key=개인키, 본문에 알림 글자 그대로 (또는 JSON {key, text})
         const smsText = body.text || body.message || (p.action ? raw : '');
-        result = withLock(function () { return autoTx(body.key || p.key || '', smsText); });
+        result = withLock(function () { return autoTx(body.key || p.key || '', smsText, body.app || p.app || ''); });
       } else {
         result = handleApi(action, body);
       }
@@ -115,6 +115,8 @@ function handleApi(action, body) {
     case 'setMode':       return withLock(function () { return setMode(user, body.mode); });
     case 'entryAdd':      return withLock(function () { return entryAdd(user, body); });
     case 'entryUpdate':   return withLock(function () { return entryUpdate(user, body); });
+    case 'entryAddMany':  return withLock(function () { return entryAddMany(user, body); });
+    case 'ocrEntries':    return ocrEntries(user, body);
     case 'entryDelete':   return withLock(function () { return entrySetDeleted(user, body.id, 1); });
     case 'entryRestore':  return withLock(function () { return entrySetDeleted(user, body.id, 0); });
     case 'cardBenefit':   return getCardBenefit(body.query);
@@ -474,7 +476,9 @@ function validateEntry(body) {
   const category = String(body.category || '').trim().slice(0, 30);
   if (!category) return { error: '분류를 선택해주세요.' };
   const memo = String(body.memo || '').trim().slice(0, 100);
-  return { value: { type: type, amount: amount, date: date, category: category, memo: memo } };
+  // 결제수단: '현금' 또는 카드 이름 (수입에는 없음)
+  const pay = type === 'expense' ? String(body.pay || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 30) : '';
+  return { value: { type: type, amount: amount, date: date, category: category, memo: memo, pay: pay } };
 }
 
 function entryAdd(user, body) {
@@ -487,9 +491,41 @@ function entryAdd(user, body) {
   const sh = ensureSheet(getSS(), 'Entries', ENTRY_HEADERS);
   const id = 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const now = Date.now();
-  sh.appendRow([id, me.groupId, user, me.name, v.value.type, v.value.date, v.value.category, v.value.amount, v.value.memo, now, now, 0]);
+  ensurePayHeader(sh);
+  const row = [id, me.groupId, user, me.name, v.value.type, v.value.date, v.value.category, v.value.amount, v.value.memo, now, now, 0, v.value.pay];
+  sh.appendRow(row);
   bumpGroupMembersRev(me.groupId);
-  return { success: true, entry: rowToEntry([id, me.groupId, user, me.name, v.value.type, v.value.date, v.value.category, v.value.amount, v.value.memo, now, now, 0]) };
+  return { success: true, entry: rowToEntry(row) };
+}
+
+// 예전에 만든 Entries 시트에 '결제수단' 열 머리글 추가
+function ensurePayHeader(sh) {
+  if (sh.getMaxColumns() < 13) sh.insertColumnsAfter(sh.getMaxColumns(), 13 - sh.getMaxColumns());
+  if (String(sh.getRange(1, 13).getValue()) !== 'pay') sh.getRange(1, 13).setValue('pay');
+}
+
+// 여러 건 한 번에 등록 (카드내역 캡쳐 등록용). 지출만.
+function entryAddMany(user, body) {
+  const me = getUserInfo(user);
+  if (!me) return { success: false, message: '계정을 찾을 수 없습니다.' };
+  if (!me.groupId) return { success: false, code: 'NOGROUP', message: '먼저 가족 그룹을 만들거나 참여해주세요.' };
+  const items = Array.isArray(body.items) ? body.items : [];
+  if (!items.length) return { success: false, message: '등록할 내역이 없어요.' };
+  if (items.length > 80) return { success: false, message: '한 번에 80건까지 등록할 수 있어요.' };
+  const rows = [], out = [], now = Date.now();
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i] || {};
+    const v = validateEntry({ type: 'expense', amount: it.amount, date: it.date, category: it.category, memo: it.memo, pay: it.pay || body.pay });
+    if (v.error) return { success: false, message: (i + 1) + '번째: ' + v.error };
+    const id = 'e' + (now + i).toString(36) + Math.random().toString(36).slice(2, 6);
+    const row = [id, me.groupId, user, me.name, 'expense', v.value.date, v.value.category, v.value.amount, v.value.memo, now + i, now + i, 0, v.value.pay];
+    rows.push(row); out.push(rowToEntry(row));
+  }
+  const sh = ensureSheet(getSS(), 'Entries', ENTRY_HEADERS);
+  ensurePayHeader(sh);
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, 13).setValues(rows);
+  bumpGroupMembersRev(me.groupId);
+  return { success: true, count: rows.length, entries: out };
 }
 
 function findEntryRow(sh, id) {
@@ -511,6 +547,8 @@ function entryUpdate(user, body) {
   // type, date, category, amount, memo (E..I) + updatedAt (K)
   sh.getRange(f.row, 5, 1, 5).setValues([[v.value.type, v.value.date, v.value.category, v.value.amount, v.value.memo]]);
   sh.getRange(f.row, 11).setValue(now);
+  ensurePayHeader(sh);
+  sh.getRange(f.row, 13).setValue(v.value.pay);
   bumpGroupMembersRev(me.groupId);
   return { success: true };
 }
@@ -531,7 +569,7 @@ function rowToEntry(r) {
   return {
     id: String(r[0]), owner: String(r[2]), ownerName: String(r[3]), type: String(r[4]),
     date: toDateStr(r[5]), category: String(r[6]), amount: Number(r[7]) || 0, memo: String(r[8] || ''),
-    createdAt: Number(r[9]) || 0, updatedAt: Number(r[10]) || 0
+    createdAt: Number(r[9]) || 0, updatedAt: Number(r[10]) || 0, pay: String(r[12] || '')
   };
 }
 
@@ -761,7 +799,7 @@ function autoTest(user, body) {
   return { success: true, parsed: p, category: guessCategory(p.merchant) };
 }
 
-function autoTx(key, text) {
+function autoTx(key, text, app) {
   const user = findUserByAutoKey(key);
   if (!user) return { success: false, message: '자동 기록 키가 올바르지 않습니다.' };
   const cache = CacheService.getScriptCache(), ck = 'ar_' + user;
@@ -803,11 +841,110 @@ function autoTx(key, text) {
   }
 
   const merchant = p.merchant || '카드 결제';
-  const res = entryAdd(user, { type: 'expense', date: date, category: guessCategory(merchant), amount: p.amount, memo: '[자동] ' + merchant });
+  const pay = matchUserCard(user, detectIssuer(app, text), p.last4);
+  const res = entryAdd(user, { type: 'expense', date: date, category: guessCategory(merchant), amount: p.amount, memo: '[자동] ' + merchant, pay: pay });
   if (!res.success) return res;
   log.appendRow([dedupe, user, res.entry.id, 'ok', new Date(), merchant, p.amount, String(text).slice(0, 300)]);
   cache.put('al_' + user, String(Date.now()), 21600 * 4);
-  return { success: true, recorded: { date: date, amount: p.amount, merchant: merchant, category: res.entry.category } };
+  return { success: true, recorded: { date: date, amount: p.amount, merchant: merchant, category: res.entry.category, pay: pay } };
+}
+
+// ---------- 어느 카드로 썼는지 ----------
+// [표시 이름, 카드사 낱말(앱 이름·내 카드 이름과 맞춰 봄)]
+const ISSUERS = [
+  ['KB국민카드', /KB|국민|케이비/i], ['우리카드', /우리/], ['하나카드', /하나/], ['신한카드', /신한/], ['삼성카드', /삼성/],
+  ['현대카드', /현대/], ['롯데카드', /롯데|디지로카/], ['NH농협카드', /NH|농협/i], ['BC카드', /BC|비씨|페이북/i],
+  ['카카오뱅크', /카카오\s*뱅크/], ['카카오페이', /카카오\s*페이/], ['토스카드', /토스|toss/i]
+];
+// 앱 이름(카드사 앱)이 있으면 그것으로, 없으면 글자에서 'OO카드 / OO Pay' 꼴만 인정(가맹점 이름과 헷갈리지 않게)
+function detectIssuer(app, text) {
+  app = String(app || '');
+  if (app && !/메시지|message|\{/i.test(app)) {
+    for (let i = 0; i < ISSUERS.length; i++) if (ISSUERS[i][1].test(app)) return i;
+  }
+  const t = String(text || '').replace(/\s+/g, ' ');
+  for (let i = 0; i < ISSUERS.length; i++) {
+    if (new RegExp('(' + ISSUERS[i][1].source + ')[가-힣A-Za-z]{0,4}\\s*(카드|pay|페이|뱅크)', 'i').test(t)) return i;
+  }
+  return -1;
+}
+// 고정지출에 넣어 둔 내 카드 중에서 고름: 끝 4자리가 이름에 있으면 그 카드, 아니면 같은 카드사의 첫 카드
+function matchUserCard(user, issuerIdx, last4) {
+  if (issuerIdx < 0) return '카드';
+  let names = [];
+  try {
+    const row = findDataRow(ensureDataSheet(getSS()), user);
+    const d = row && row.data ? JSON.parse(row.data) : null;
+    names = (d && d.cards ? d.cards : []).map(function (c) { return String(c.name || '').trim(); }).filter(String);
+  } catch (e) {}
+  const mine = names.filter(function (n) { return ISSUERS[issuerIdx][1].test(n); });
+  if (last4) { for (let i = 0; i < mine.length; i++) if (mine[i].indexOf(last4) >= 0) return mine[i]; }
+  return mine.length ? mine[0] : ISSUERS[issuerIdx][0];
+}
+
+// ---------- 카드 이용내역 캡쳐 이미지 → 여러 건 읽기 (Gemini) ----------
+function ocrEntries(user, body) {
+  const me = getUserInfo(user);
+  if (!me) return { success: false, message: '계정을 찾을 수 없습니다.' };
+  const img = String(body.image || '');
+  if (img.length < 1000 || img.length > 1400000 || !/^[A-Za-z0-9+/=]+$/.test(img.slice(0, 200))) return { success: false, message: '이미지를 읽지 못했어요. 다시 골라주세요.' };
+  const mime = /^image\/(jpeg|png|webp)$/.test(String(body.mime)) ? String(body.mime) : 'image/jpeg';
+  const key = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!key) return { success: false, message: '이미지 읽기가 아직 설정되지 않았어요. (GEMINI_API_KEY 필요)' };
+  const cache = CacheService.getScriptCache(), ck = 'oc_' + user;
+  const used = parseInt(cache.get(ck) || '0', 10);
+  if (used >= 30) return { success: false, message: '이미지 읽기를 너무 많이 했어요. 몇 시간 뒤 다시 해주세요.' };
+  cache.put(ck, String(used + 1), 21600);
+
+  const today = todayStr();
+  const prompt = '이 이미지는 한국 카드사 앱 또는 문자의 카드 이용내역(승인내역) 화면이다. 오늘은 ' + today + ' 이다.\n' +
+    '화면에 보이는 결제 건을 하나도 빠짐없이 JSON 배열로만 답해라. 각 건: {"date":"YYYY-MM-DD","time":"HH:MM 또는 빈 문자열","merchant":"가맹점 이름","amount":원 단위 정수,"cancel":취소 건이면 true}.\n' +
+    '규칙: 연도가 안 보이면 오늘 기준 가장 가까운 과거 날짜로 채운다. 합계·누적·잔액·한도·포인트·할부 개월은 건으로 넣지 않는다. ' +
+    '금액은 쉼표 없이 숫자만. 보이지 않는 내용은 지어내지 않는다. 결제 건이 없으면 [] 만 답한다.';
+  const payload = { contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: img } }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } };
+  const models = ['gemini-2.5-flash', 'gemini-flash-latest'];
+  let data = null, lastMsg = '';
+  for (let i = 0; i < models.length && !data; i++) {
+    try {
+      const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent?key=' + key,
+        { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true });
+      const j = JSON.parse(res.getContentText());
+      if (res.getResponseCode() === 200) data = j; else lastMsg = (j && j.error && j.error.message) || ('HTTP ' + res.getResponseCode());
+    } catch (e) { lastMsg = String(e); }
+  }
+  if (!data) return { success: false, message: '이미지를 읽지 못했어요. 잠시 뒤 다시 해주세요. (' + String(lastMsg).slice(0, 80) + ')' };
+  let text = '';
+  try { text = data.candidates[0].content.parts.map(function (x) { return x.text || ''; }).join(''); } catch (e) {}
+  text = text.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '').trim();
+  let arr = null; try { arr = JSON.parse(text); } catch (e) {}
+  if (arr && !Array.isArray(arr) && Array.isArray(arr.items)) arr = arr.items;
+  if (!Array.isArray(arr)) return { success: false, message: '이미지에서 결제 내역을 찾지 못했어요.' };
+
+  // 이미 기록된 것 표시용: 내 기록의 날짜|금액
+  const have = {};
+  const sh = getSS().getSheetByName('Entries');
+  if (sh && me.groupId) {
+    const rows = sh.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][1]) === me.groupId && String(rows[i][2]) === user && Number(rows[i][11]) !== 1) have[toDateStr(rows[i][5]) + '|' + Number(rows[i][7])] = 1;
+    }
+  }
+  const items = []; let cancelled = 0;
+  arr.slice(0, 80).forEach(function (x) {
+    if (!x || typeof x !== 'object') return;
+    const rawAmt = Math.round(Number(String(x.amount).replace(/[^0-9.-]/g, '')));
+    const amount = Math.abs(rawAmt);
+    let date = String(x.date || '');
+    if (/^\d{1,2}[-./]\d{1,2}$/.test(date)) { const q = date.split(/[-./]/); date = today.slice(0, 4) + '-' + pad2(q[0]) + '-' + pad2(q[1]); }
+    date = date.replace(/[./]/g, '-');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !(amount > 0) || amount > 100000000000) return;
+    if (date > today) date = (Number(date.slice(0, 4)) - 1) + date.slice(4);
+    if (x.cancel === true || rawAmt < 0) { cancelled++; return; }
+    const merchant = String(x.merchant || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 40) || '카드 결제';
+    items.push({ date: date, time: /^\d{1,2}:\d{2}$/.test(String(x.time)) ? String(x.time) : '', merchant: merchant, amount: amount, category: guessCategory(merchant), dup: !!have[date + '|' + amount] });
+  });
+  if (!items.length) return { success: false, message: cancelled ? '취소 건만 있어요.' : '이미지에서 결제 내역을 찾지 못했어요.' };
+  return { success: true, items: items, cancelled: cancelled };
 }
 
 
