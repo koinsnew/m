@@ -635,11 +635,12 @@ function parseCardAlert(text) {
   let amount = 0, amtStr = '';
   const re = /([0-9][0-9,]*)\s*원/g; let m;
   while ((m = re.exec(t)) !== null) {
-    if (/(누적|잔여|한도|잔액)\s*[:：]?\s*$/.test(t.slice(Math.max(0, m.index - 8), m.index))) continue;
+    if (/(누적|잔여|한도|잔액)[^0-9]{0,8}$/.test(t.slice(Math.max(0, m.index - 14), m.index))) continue;
     amount = parseInt(m[1].replace(/,/g, ''), 10); amtStr = m[0]; break;
   }
   if (!amount) return null;
-  const dm = t.match(/(\d{1,2})\/(\d{1,2})\s*(\d{1,2}):(\d{2})/);
+  // 날짜·시간: 11/10 14:02 · 11.11 09:44 · 2026/11/11 09:44:59 · 11-11 09:44
+  const dm = t.match(/(?:\d{4}[./-])?(\d{1,2})[./-](\d{1,2})\.?\s*(\d{1,2}):(\d{2})/);
   const l4 = t.match(/(?:신용|체크|카드)\s*\(?(\d{4})\)?/) || t.match(/(\d{4})\s*(?:승인|취소)/) || t.match(/\((\d{4})\)/);
   // 광고·안내 알림(예: '최대 10,000원 캐시백')은 무시: 승인/취소 글자와 날짜·카드번호 중 하나가 있어야 함
   if (!/승인|취소|사용\s*알림|결제/.test(t) || (!dm && !l4)) return null;
@@ -647,6 +648,10 @@ function parseCardAlert(text) {
   let s = t.replace(/(누적|잔여|한도|잔액).*$/, '').replace(/(\.\.\.|…).*$/, '').replace(/\[[^\]]*\]/g, ' ');
   if (dm) s = s.replace(dm[0], ' ');
   s = s.replace(amtStr, ' ')
+    .replace(/\((결제|승인|취소|승인취소|해외|국내)\)/g, ' ')
+    .replace(/(신용|체크)\s*\([^)]*\)/g, ' ')
+    .replace(/\(주\)|㈜|주식회사/g, ' ')
+    .replace(/[\/|]/g, ' ')
     .replace(/[가-힣A-Za-z]*카드\s*\(?\d{0,4}\)?/g, ' ')
     .replace(/(신용|체크)\s*\d{4}/g, ' ')
     .replace(/[가-힣]{0,2}\*[가-힣]{0,2}\s*님?/g, ' ')
