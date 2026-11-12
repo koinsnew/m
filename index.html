@@ -469,6 +469,9 @@
     .feed-list { padding: 0 20px; display: flex; flex-direction: column; gap: 8px; }
     .feed-item { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 16px; padding: 12px 8px 12px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); min-height: 64px; }
     .feed-item.pending { opacity: 0.55; }
+    .feed-av.pay { font-size: 12.5px; letter-spacing: -0.3px; }
+    .feed-av.pay.sm { font-size: 10.5px; }
+    .feed-av.pay.cash { background: #F5EFD9; color: #6B5210; border: 1px solid #D9C88F; font-size: 12px; }
     .feed-av { width: 38px; height: 38px; border-radius: 50%; color: #fff; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .feed-main { flex: 1; min-width: 0; text-align: left; background: none; border: none; padding: 0; cursor: default; font-family: inherit; }
     .feed-main.mine { cursor: pointer; }
@@ -3153,6 +3156,22 @@
       if (v === 'stats') renderStats();
     }
 
+    // 기록 앞 동그라미: 지출은 결제수단(현금 / 카드사 이름), 그 외에는 기록한 사람
+    const PAY_MARKS = [
+      [/KB|국민|케이비/i, 'KB', '#6B5B2E'], [/신한/, '신한', '#1D4ED8'], [/삼성/, '삼성', '#1E3A8A'], [/현대/, '현대', '#111827'],
+      [/롯데/, '롯데', '#B91C1C'], [/하나/, '하나', '#0F766E'], [/우리/, '우리', '#0369A1'], [/NH|농협/i, 'NH', '#15803D'],
+      [/BC|비씨/i, 'BC', '#BE123C'], [/카카오/, '카카오', '#3F3F46'], [/토스/, '토스', '#2563EB'], [/IBK|기업/i, 'IBK', '#1E40AF'],
+      [/씨티|citi/i, '씨티', '#075985'], [/수협/, '수협', '#0E7490'], [/새마을/, 'MG', '#166534'], [/우체국/, '우체국', '#9F1239'],
+      [/네이버/, '네이버', '#047857'], [/페이코|payco/i, '페이코', '#B91C1C']
+    ];
+    function payBadge(e) {
+      const pay = (e.type !== 'income' && e.pay) ? String(e.pay).trim() : '';
+      if (!pay) return `<div class="feed-av" style="background:${memberColor(e.owner)}" aria-hidden="true">${esc((e.ownerName || '?').charAt(0))}</div>`;
+      if (pay === '현금') return '<div class="feed-av pay cash" aria-hidden="true">현금</div>';
+      const m = PAY_MARKS.find(x => x[0].test(pay));
+      const label = m ? m[1] : pay.replace(/카드|\s/g, '').slice(0, 2) || '카드';
+      return `<div class="feed-av pay${label.length > 2 ? ' sm' : ''}" style="background:${m ? m[2] : '#475569'}" aria-hidden="true">${esc(label)}</div>`;
+    }
     function renderFeed(list) {
       const box = $('feedList');
       const sorted = list.slice().sort((a, b) => (b.date === a.date ? (b.createdAt || 0) - (a.createdAt || 0) : (a.date < b.date ? 1 : -1)));
@@ -3174,7 +3193,7 @@
         const who = (!inc && e.pay) ? e.pay : e.ownerName;   // 지출은 결제수단(현금·카드 이름), 없으면 이름
         const meta = `${auto ? '<b class="auto-tag">자동</b>' : ''}${esc(who)} · ${esc(e.category)} · ${md}`;
         return `<div class="feed-item${e.pending ? ' pending' : ''}">
-          <div class="feed-av" style="background:${memberColor(e.owner)}" aria-hidden="true">${esc((e.ownerName || '?').charAt(0))}</div>
+          ${payBadge(e)}
           <button class="feed-main${mine && !e.pending ? ' mine' : ''}" ${mine && !e.pending ? `onclick="openEntry('${esc(e.id)}')" aria-label="${esc(title)} 수정"` : 'tabindex="-1"'}>
             <span class="feed-title">${esc(title)}</span><span class="feed-meta">${meta}</span>
           </button>
