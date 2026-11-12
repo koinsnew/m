@@ -3180,7 +3180,7 @@
     function renderFeed(list) {
       const box = $('feedList');
       const expSum = list.reduce((t, e) => t + (e.type === 'income' ? 0 : e.amount), 0);   // 이달 기록한 지출 합계
-      $('feedTotal').textContent = group && expSum > 0 ? '지출 ' + won(expSum) : '';
+      $('feedTotal').textContent = group && expSum > 0 ? '합계 ' + won(expSum) : '';
       const sorted = list.slice().sort((a, b) => (b.date === a.date ? (b.createdAt || 0) - (a.createdAt || 0) : (a.date < b.date ? 1 : -1)));
       if (!group) {
         box.innerHTML = '<div class="feed-empty">가족 그룹을 만들면 수입·지출을 기록하고<br>가족과 함께 볼 수 있어요.</div>';
