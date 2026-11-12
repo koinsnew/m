@@ -3483,7 +3483,7 @@
       $('impHint').innerHTML = `결제 <b>${imp.items.length}건</b>을 찾았어요. 틀린 곳이 있으면 고치고, 뺄 건은 체크를 풀어주세요.` +
         (dupN ? `<br>같은 날짜·금액이 이미 있는 <b>${dupN}건</b>은 체크를 풀어 두었어요.` : '') + (imp.cancelled ? `<br>취소 건 ${imp.cancelled}건은 뺐어요.` : '');
       $('impPay').innerHTML = payChipsHtml(imp.pay, 'pickImpPay');
-      const cats = EXP_CATS.filter(c => c !== '저축');
+      const cats = EXP_CATS.filter(c => c !== '저축' && c !== '기타').concat(['회사', '기타']);
       $('impList').innerHTML = imp.items.map((x, i) => `<li class="${x.on ? '' : 'off'}">
           <input type="checkbox" class="imp-chk" ${x.on ? 'checked' : ''} aria-label="${esc(x.merchant)} 등록" onchange="imp.items[${i}].on = this.checked; this.closest('li').classList.toggle('off', !this.checked); updateImportBtn()">
           <div class="imp-main">
