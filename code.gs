@@ -745,6 +745,8 @@ function parseCardAlert(text) {
     .replace(/일시불|\d+\s*개월|할부|무이자/g, ' ')
     .replace(/(승인|취소)(완료|되었습니다|됨)?/g, ' ')
     .replace(/KB\s*Pay|사용\s*알림|이용\s*안내|Web발신|[●■◆▶※]/gi, ' ')
+    .replace(/(^|\s)1[5-8]\d{2}-?\d{4}(?=\s|$)/g, ' ')      // 보낸 번호(1588-9955 등)
+    .replace(/(^|\s)안내(?=\s|$)/g, ' ')                      // 문자 카드 제목 '안내'
     .replace(/\s+/g, ' ').trim();
   return {
     cancel: cancel, amount: amount,
@@ -807,7 +809,11 @@ function autoTx(key, text, app) {
   if (used >= 200) return { success: false, message: '오늘 자동 기록 한도를 넘었어요.' };
   cache.put(ck, String(used + 1), 21600);
   const p = parseCardAlert(text);
-  if (!p) return { success: false, message: '카드 승인 알림이 아니에요.' };
+  if (!p) {
+    // 카드 알림 같은데 못 읽은 것은 원인 확인용으로 남김(기록은 안 함)
+    if (/카드|승인/.test(String(text))) { try { ensureSheet(getSS(), 'AutoTx', AUTO_HEADERS).appendRow(['', user, '', 'unread', new Date(), String(app || '').slice(0, 40), 0, String(text).slice(0, 300)]); } catch (e) {} }
+    return { success: false, message: '카드 승인 알림이 아니에요.' };
+  }
   if (p.skip) return { success: true, skipped: p.skip };
   const me = getUserInfo(user);
   if (!me || !me.groupId) return { success: false, message: '먼저 가족 그룹을 만들거나 참여해주세요.' };
