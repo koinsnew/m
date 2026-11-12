@@ -2848,7 +2848,7 @@
     /* ============================================================
        통계 — 그달의 전체 통계 (화면 + 이미지 저장)
        ============================================================ */
-    const ST_COLORS = ['#1E3A8A', '#A16207', '#0F766E', '#9F1239', '#6D28D9', '#0369A1', '#B45309', '#475569', '#BE185D', '#4D7C0F'];
+    const ST_COLORS = ['#1E3A8A', '#A16207', '#0F766E', '#9F1239', '#6D28D9', '#0369A1', '#B45309', '#475569', '#BE185D', '#4D7C0F', '#0E7490', '#7C2D12'];
     const stPrevCache = {};   // ym → 지난달 기록(누적 비교용)
     function prevYmOf(ym) { const p = ym.split('-').map(Number); const d = new Date(p[0], p[1] - 2, 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
     function daysIn(ym) { const p = ym.split('-').map(Number); return new Date(p[0], p[1], 0).getDate(); }
@@ -2857,11 +2857,16 @@
       const names = viewedUsernames();
       const members = memberList().filter(m => names.indexOf(m.username) >= 0);
       let fCard = 0, fLoan = 0, fCash = 0, fSave = 0;
-      const people = [];
+      const people = [], fcats = {};
       members.forEach(m => {
         const s = summaryOf(m);
         fCard += s.card || 0; fLoan += s.loan || 0; fCash += s.cash || 0; fSave += s.savings || 0;
-        people.push({ u: m.username, fixed: Math.max(0, (s.card || 0) + (s.loan || 0) + (s.cash || 0) - (s.savings || 0)), vari: 0 });
+        const mFixed = Math.max(0, (s.card || 0) + (s.loan || 0) + (s.cash || 0) - (s.savings || 0));
+        people.push({ u: m.username, fixed: mFixed, vari: 0 });
+        // 고정지출을 홈의 분류별 지출처럼 항목(분류)별로 나눔 — 세부가 없으면 '고정지출'로 묶음
+        let got = 0;
+        Object.keys(s.cats || {}).forEach(k => { const v = s.cats[k] || 0; if (k === '저축' || v <= 0) return; fcats[k] = (fcats[k] || 0) + v; got += v; });
+        if (!got && mFixed > 0) fcats['고정지출'] = (fcats['고정지출'] || 0) + mFixed;
       });
       const viewed = entries.filter(e => names.indexOf(e.owner) >= 0);
       let income = 0, vari = 0, entrySave = 0;
@@ -2869,7 +2874,7 @@
       viewed.forEach(e => {
         if (e.type === 'income') { income += e.amount; return; }
         if (e.category === '저축') { entrySave += e.amount; return; }
-        vari += e.amount; cats[e.category] = (cats[e.category] || 0) + e.amount;
+        vari += e.amount; cats[LIVING_CAT] = (cats[LIVING_CAT] || 0) + e.amount;   // 홈과 같이 이달 기록은 '생활비'로
         const d = Number(String(e.date).slice(8, 10)); if (d >= 1 && d <= nd) daily[d - 1] += e.amount;
         const p = people.find(x => x.u === e.owner); if (p) p.vari += e.amount;
         spends.push(e);
@@ -2877,11 +2882,11 @@
       const fixed = Math.max(0, fCard + fLoan + fCash - fSave);
       const save = fSave + entrySave, spend = fixed + vari;
       const slices = [];
-      if (fixed > 0) slices.push({ k: '고정지출', v: fixed });
+      Object.keys(fcats).forEach(k => { cats[k] = (cats[k] || 0) + fcats[k]; });
       if (save > 0) slices.push({ k: '저축', v: save });
       Object.keys(cats).forEach(k => slices.push({ k: k, v: cats[k] }));
       slices.sort((a, b) => b.v - a.v);
-      if (slices.length > 9) { const rest = slices.splice(8); slices.push({ k: '기타', v: rest.reduce((a, b) => a + b.v, 0) }); }
+      if (slices.length > 12) { const rest = slices.splice(11); slices.push({ k: '그 외 ' + rest.length + '개', v: rest.reduce((a, b) => a + b.v, 0) }); }
       // 무지출 날: 변동 지출(이달 기록)이 없는 날, 오늘 이후는 제외
       const today = new Date(), isCur = viewYm === curYm();
       const upto = isCur ? today.getDate() : (viewYm > curYm() ? 0 : nd);
