@@ -3726,7 +3726,8 @@
     ];   // 카드 승인 문자(삼성·구글 메시지)는 항상 기본 포함
     // 문자앱(삼성 메시지·구글 메시지) — '승인/취소'와 'OO원'이 둘 다 있는 문자만 보냄
     const SMS_APPS = [['메시지', 'com.samsung.android.messaging'], ['메시지(Google)', 'com.google.android.apps.messaging']];
-    const SMS_REGEX = '(?s)(?=.*(승인|취소))(?=.*[0-9][0-9,]*원).*';
+    // 글자 포함 방식으로 거름(정규식은 폰에 따라 안 맞는 일이 있어 쓰지 않음). 카드 문자가 아닌 것은 서버에서 버림
+    const SMS_WORDS = ['승인', '취소'];
     function myCardApps() { try { const v = JSON.parse(localStorage.getItem('ss_cardapps') || '[]'); return Array.isArray(v) ? v.filter(p => CARD_APPS.some(c => c[2] === p)) : []; } catch (e) { return []; } }
     function toggleCardApp(pkg, btn) {
       const cur = myCardApps(), i = cur.indexOf(pkg);
@@ -3740,7 +3741,7 @@
     // MacroDroid 가져오기용 매크로 파일 (알림 수신 → HTTP POST)
     function notiTrigger(names, pkgs, regex) {
       return {
-        enableRegex: !!regex, ignoreCase: true,
+        enableRegex: false, ignoreCase: true,
         m_applicationNameList: names, m_packageNameList: pkgs,
         m_exactMatch: false, m_excludeApps: false, m_excludes: false, m_ignoreOngoing: true, m_option: 0, m_soundOption: 0, m_supressMultiples: false,
         m_textContent: regex || '', matchOptionMessage: 0, matchOptionTitle: 0, separateTitleAndMessage: false, disableLogging: false,
@@ -3751,7 +3752,7 @@
       const apps = CARD_APPS.filter(c => pkgs.indexOf(c[2]) >= 0);
       const triggers = [];
       if (apps.length) triggers.push(notiTrigger(apps.map(x => x[1]), apps.map(x => x[2]), ''));
-      triggers.push(notiTrigger(SMS_APPS.map(x => x[0]), SMS_APPS.map(x => x[1]), SMS_REGEX));   // 문자는 항상
+      SMS_WORDS.forEach(w => triggers.push(notiTrigger(SMS_APPS.map(x => x[0]), SMS_APPS.map(x => x[1]), w)));   // 문자는 항상
       const m = {
         macro: {
           aiGenerated: 0, breakpoints: [], disabledTimestamp: 0, exportedActionBlocks: [], forceEvenIfNotEnabledTimestamp: 0,
