@@ -1411,8 +1411,10 @@
       if (!KAKAO_REST_KEY) { showToast('카카오 로그인 준비 중이에요.', true); return; }
       const st = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
       try { sessionStorage.setItem('kk_state', JSON.stringify({ s: st, mode: mode, auto: $('autoLogin').checked })); } catch (e) {}
+      let relogin = false; try { relogin = localStorage.getItem('ss_relogin') === '1'; } catch (e) {}
       location.href = 'https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=' + encodeURIComponent(KAKAO_REST_KEY) +
-        '&redirect_uri=' + encodeURIComponent(KAKAO_REDIRECT) + '&state=' + st;
+        '&redirect_uri=' + encodeURIComponent(KAKAO_REDIRECT) + '&state=' + st +
+        (relogin ? '&prompt=login' : '');   // 로그아웃한 뒤에는 카카오 계정을 다시 묻게 해서 다른 사람으로 들어갈 수 있게 함
     }
     // 카카오에서 돌아왔을 때(?code=..&state=..) 처리. 처리했으면 true
     function handleKakaoReturn() {
@@ -1420,6 +1422,7 @@
       if (!q.has('code') && !q.has('error')) return false;
       let saved = null; try { saved = JSON.parse(sessionStorage.getItem('kk_state') || 'null'); sessionStorage.removeItem('kk_state'); } catch (e) {}
       const code = q.get('code'), state = q.get('state'), error = q.get('error');
+      if (code) { try { localStorage.removeItem('ss_relogin'); } catch (e) {} }
       history.replaceState(null, '', location.pathname);
       if (!saved || saved.s !== state) { if (code) showToast('카카오 로그인 확인에 실패했어요. 다시 시도해주세요.', true); return false; }
       $('autoLogin').checked = saved.auto !== false;
@@ -1534,6 +1537,7 @@
     function logout() {
       const go = () => {
         clearSession();
+        try { localStorage.setItem('ss_relogin', '1'); } catch (e) {}
         resetLoginUi();
         showToast('안전하게 로그아웃 되었습니다.');
       };
@@ -3321,6 +3325,14 @@
     function payChoices(extra) {
       const list = ['현금'];
       (appData.cards || []).forEach(c => { const n = String(c.name || '').trim(); if (n && list.indexOf(n) < 0) list.push(n); });
+      // 자동 기록에서 고른 카드사(토스 등)도 고를 수 있게 — 고정지출에 같은 카드사 카드가 이미 있으면 빼고
+      const picked = myCardApps();
+      CARD_APPS.forEach(c => {
+        if (picked.indexOf(c[2]) < 0 || list.indexOf(c[0]) >= 0) return;
+        const key = c[0].replace(/카드|뱅크|페이|국민/g, '');
+        if (key && list.some(n => n !== '현금' && n.indexOf(key) >= 0)) return;
+        list.push(c[0]);
+      });
       if (extra && list.indexOf(extra) < 0) list.push(extra);
       return list;
     }
