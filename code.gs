@@ -728,7 +728,9 @@ function parseCardAlert(text) {
   const dm = t.match(/(?:\d{4}[./-])?(\d{1,2})[./-](\d{1,2})\.?\s*(\d{1,2}):(\d{2})/);
   const l4 = t.match(/(?:신용|체크|카드)\s*\(?(\d{4})\)?/) || t.match(/(\d{4})\s*(?:승인|취소)/) || t.match(/\((\d{4})\)/);
   // 광고·안내 알림(예: '최대 10,000원 캐시백')은 무시: 승인/취소 글자와 날짜·카드번호 중 하나가 있어야 함
-  if (!/승인|취소|사용\s*알림|결제/.test(t) || (!dm && !l4)) return null;
+  // 단, 토스처럼 날짜·카드번호 없이 'OO원 결제'로 오는 알림은 금액 바로 뒤에 결제/승인/취소가 있으면 인정
+  const direct = /[0-9][0-9,]*\s*원\s*(결제|승인|취소|사용)/.test(t);
+  if (!/승인|취소|사용\s*알림|결제/.test(t) || (!dm && !l4 && !direct)) return null;
   // 가맹점: 알려진 조각을 지우고 남는 글자
   // 누적·잔여 금액은 그 조각만 지움(우리카드처럼 가맹점이 누적금액 뒤에 오는 경우가 있음)
   let s = t.replace(/총?(누적|잔여|한도|잔액)[가-힣\s:：]*[0-9][0-9,]*\s*원/g, ' ')
@@ -744,6 +746,8 @@ function parseCardAlert(text) {
     .replace(/[가-힣]{0,2}\*[가-힣]{0,2}\s*님?/g, ' ')
     .replace(/일시불|\d+\s*개월|할부|무이자/g, ' ')
     .replace(/(승인|취소)(완료|되었습니다|됨)?/g, ' ')
+    .replace(/(토스|카카오|케이)\s*뱅크/g, ' ')
+    .replace(/(^|\s)결제(\s*완료)?(?=\s|$)/g, ' ')
     .replace(/KB\s*Pay|사용\s*알림|이용\s*안내|Web발신|[●■◆▶※]/gi, ' ')
     .replace(/(^|\s)1[5-8]\d{2}-?\d{4}(?=\s|$)/g, ' ')      // 보낸 번호(1588-9955 등)
     .replace(/(^|\s)안내(?=\s|$)/g, ' ')                      // 문자 카드 제목 '안내'
@@ -823,7 +827,9 @@ function autoTx(key, text, app) {
   let y = now.getFullYear();
   if (p.month && p.month > now.getMonth() + 2) y -= 1;
   const date = p.month ? y + '-' + pad2(p.month) + '-' + pad2(p.day) : todayStr();
-  const dedupe = [user, p.last4, date, p.hh + p.mi, p.amount, p.cancel ? 'C' : 'A'].join('|');
+  // 알림에 시각이 없으면 받은 시각(분)으로 구분 — 같은 날 같은 금액을 두 번 써도 따로 기록됨
+  const hm = (p.hh + p.mi) || (pad2(now.getHours()) + pad2(now.getMinutes()));
+  const dedupe = [user, p.last4, date, hm, p.amount, p.cancel ? 'C' : 'A'].join('|');
 
   const ss = getSS(), log = ensureSheet(ss, 'AutoTx', AUTO_HEADERS);
   const rows = log.getDataRange().getValues();
